@@ -1,0 +1,70 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyflare"
+version = "0.1.0"
+description = "Open Python toolkit for satellite-based gas flaring analytics across African oil-producing nations"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+    { name = "Johnpaul Okeke", email = "okekejohnpaul12@gmail.com" }
+]
+keywords = [
+    "viirs",
+    "nightfire",
+    "gas-flaring",
+    "methane",
+    "africa",
+    "remote-sensing",
+    "climate",
+    "energy",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Atmospheric Science",
+    "Topic :: Scientific/Engineering :: GIS",
+]
+dependencies = [
+    "pandas>=2.0",
+    "requests>=2.31",
+    "tqdm>=4.65",
+]
+
+[project.optional-dependencies]
+viz = [
+    "folium>=0.15",
+    "matplotlib>=3.7",
+    "geopandas>=0.14",
+]
+dev = [
+    "pytest>=7.4",
+    "pytest-cov>=4.1",
+    "ruff>=0.1",
+    "mypy>=1.5",
+]
+
+[project.urls]
+Homepage = "https://github.com/jpokekeebube/pyflare"
+Documentation = "https://pyflare.readthedocs.io"
+Repository = "https://github.com/jpokekeebube/pyflare"
+Issues = "https://github.com/jpokekeebube/pyflare/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra -q --strict-markers"
