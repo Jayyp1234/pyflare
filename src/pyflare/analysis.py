@@ -64,6 +64,24 @@ DEFAULT_METHANE_SLIP: float = 0.05
 #: the literature for higher-fidelity volume estimates.
 RH_MWYR_TO_M3_GAS: float = 1.06e6
 
+#: Standard density of methane (kg/m³) at 15 °C, 1 atm. Used to convert
+#: slipped methane volume to mass.
+METHANE_DENSITY_KG_PER_M3: float = 0.717
+
+#: Combustion CO2 emission factor for flared associated gas, in kg CO2 per
+#: m³ of gas burned. From IPCC 2006 Guidelines for National GHG
+#: Inventories, Vol. 2 (Energy), Ch. 4 (Fugitive Emissions), Table 4.2.4.
+#: Assumes a typical associated-gas composition (~93% CH4 plus heavier
+#: hydrocarbons) and complete combustion of the burned share. Per-basin
+#: composition varies; expose as a kwarg for sensitivity analysis.
+CO2_PER_M3_GAS_KG: float = 2.55
+
+#: 100-year global warming potential of fossil methane, per IPCC AR6 WG1
+#: Chapter 7 (Forster et al., 2021). Used to convert slipped CH4 mass into
+#: CO2-equivalent mass. (AR5 used 28-30; AR4 used 25 — using AR6 keeps
+#: pyflare in line with current IPCC reporting.)
+METHANE_GWP100_FOSSIL: float = 29.8
+
 
 # ---------------------------------------------------------------------------
 # Public API
@@ -321,7 +339,7 @@ def methane_proxy(
     volume_bcm: float | pd.Series,
     *,
     methane_slip: float = DEFAULT_METHANE_SLIP,
-    methane_density_kg_per_m3: float = 0.717,
+    methane_density_kg_per_m3: float = METHANE_DENSITY_KG_PER_M3,
 ) -> float | pd.Series:
     """Estimate methane mass emissions from flared gas volume.
 
@@ -350,3 +368,90 @@ def methane_proxy(
     methane_m3 = volume_m3 * methane_slip
     methane_kg = methane_m3 * methane_density_kg_per_m3
     return methane_kg / 1000.0  # tonnes
+
+
+def volume_to_co2eq(
+    volume_bcm: float | pd.Series,
+    methane_slip: float = DEFAULT_METHANE_SLIP,
+    *,
+    combustion_ef_kg_per_m3: float = CO2_PER_M3_GAS_KG,
+    methane_gwp100: float = METHANE_GWP100_FOSSIL,
+    methane_density_kg_per_m3: float = METHANE_DENSITY_KG_PER_M3,
+) -> float | pd.Series:
+    """Convert flared gas volume to CO2-equivalent emissions, in megatonnes.
+
+    Two pathways combine to give the headline number:
+
+    1. Burned fraction (``1 - methane_slip``) → CO2 directly via the
+       combustion emission factor.
+    2. Slipped fraction → CH4 mass → CO2-equivalent via the 100-year GWP.
+
+    Slipped methane dominates per unit volume: 1 m³ of slipped CH4 carries
+    roughly 8× the climate impact of 1 m³ burned to CO2, so the
+    ``methane_slip`` choice drives the answer. Defaults follow IPCC AR6;
+    pass a higher slip to test against satellite-derived basin estimates
+    (Plant et al., 2022).
+
+    Parameters
+    ----------
+    volume_bcm
+        Flared volume in billion cubic metres (single value or Series).
+    methane_slip
+        Fraction of input gas that escapes uncombusted as methane. Default
+        :data:`DEFAULT_METHANE_SLIP` (0.05). For an IPCC AR6-conservative
+        estimate, pass 0.02. Plant et al. (2022) report 0.04-0.09 for
+        several producing basins.
+    combustion_ef_kg_per_m3
+        Combustion emission factor in kg CO2 per m³ flared gas. Default
+        from IPCC 2006 Guidelines (2.55).
+    methane_gwp100
+        100-year global warming potential of fossil methane. Default from
+        IPCC AR6 WG1 (29.8).
+    methane_density_kg_per_m3
+        Methane density at standard conditions (15 °C, 1 atm).
+
+    Returns
+    -------
+    float or pandas.Series
+        CO2-equivalent emissions in megatonnes (MtCO2e).
+
+    Raises
+    ------
+    ValueError
+        If ``methane_slip`` is outside [0, 1].
+
+    Examples
+    --------
+    >>> # Nigeria-scale flaring (~7.4 bcm in 2024) with IPCC AR6 conservative slip
+    >>> mt = volume_to_co2eq(7.4, 0.02)
+    >>> round(mt, 1)
+    21.7
+
+    >>> # Same volume with satellite-derived slip (Plant et al. 2022, ~5%)
+    >>> volume_to_co2eq(7.4, 0.05) > volume_to_co2eq(7.4, 0.02)
+    True
+
+    References
+    ----------
+    .. [1] IPCC (2006). 2006 Guidelines for National Greenhouse Gas
+       Inventories, Vol. 2 (Energy), Ch. 4. Combustion EF: 2.55 kg CO2/m³.
+    .. [2] Forster, P., et al. (2021). The Earth's Energy Budget, Climate
+       Feedbacks and Climate Sensitivity. In *IPCC AR6 WG1*, Ch. 7. GWP-100
+       fossil methane = 29.8.
+    .. [3] Plant, G., et al. (2022). Inefficient and unlit natural gas
+       flares both emit large quantities of methane. *Science*, 377(6614),
+       1566-1571. https://doi.org/10.1126/science.abq0385
+    """
+    if not 0 <= methane_slip <= 1:
+        raise ValueError(f"methane_slip must be in [0, 1], got {methane_slip}")
+
+    volume_m3 = volume_bcm * 1e9
+    burned_m3 = volume_m3 * (1 - methane_slip)
+    slipped_m3 = volume_m3 * methane_slip
+
+    combustion_co2_kg = burned_m3 * combustion_ef_kg_per_m3
+    slipped_methane_kg = slipped_m3 * methane_density_kg_per_m3
+    methane_co2eq_kg = slipped_methane_kg * methane_gwp100
+
+    total_kg = combustion_co2_kg + methane_co2eq_kg
+    return total_kg / 1e9  # kg → Mt

@@ -17,6 +17,7 @@ from pyflare.analysis import (
     estimate_flared_volume,
     methane_proxy,
     persistence_score,
+    volume_to_co2eq,
 )
 from pyflare.data import (
     fetch_ggfr_annual,
@@ -43,6 +44,7 @@ __all__ = [
     "aggregate_to_sites",
     "estimate_flared_volume",
     "methane_proxy",
+    "volume_to_co2eq",
     # Meta
     "__version__",
 ]

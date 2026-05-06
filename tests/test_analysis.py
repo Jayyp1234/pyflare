@@ -7,13 +7,17 @@ import pandas as pd
 import pytest
 
 from pyflare.analysis import (
+    CO2_PER_M3_GAS_KG,
     DEFAULT_METHANE_SLIP,
     FLARE_TEMP_THRESHOLD_K,
+    METHANE_DENSITY_KG_PER_M3,
+    METHANE_GWP100_FOSSIL,
     aggregate_to_sites,
     classify_detection_type,
     estimate_flared_volume,
     methane_proxy,
     persistence_score,
+    volume_to_co2eq,
 )
 
 
@@ -182,3 +186,69 @@ def test_flare_temp_threshold_in_realistic_range() -> None:
     # Sanity check on the documented default — should sit in the gap between
     # biomass burning (~600-1200 K) and saturation (>2400 K).
     assert 1200 < FLARE_TEMP_THRESHOLD_K < 2400
+
+
+# ---------------------------------------------------------------------------
+# volume_to_co2eq — the headline-number function (gate G2)
+# ---------------------------------------------------------------------------
+
+
+def test_volume_to_co2eq_returns_positive_for_sample() -> None:
+    # Mirrors scripts/verify.sh G2: Nigeria-scale volume + IPCC AR6 slip.
+    mt = volume_to_co2eq(7.4, 0.02)
+    assert mt > 0
+
+
+def test_volume_to_co2eq_matches_hand_calculation() -> None:
+    # 7.4 bcm flared, 2% slip:
+    #   burned   = 7.4e9 * 0.98 m³ → 7.252e9 m³  → 7.252e9 * 2.55 = 1.84926e10 kg CO2
+    #   slipped  = 7.4e9 * 0.02 m³ → 1.48e8 m³   → 1.48e8 * 0.717 = 1.06116e8 kg CH4
+    #   ch4 → eq = 1.06116e8 * 29.8                                 = 3.16226e9 kg CO2e
+    #   total    = 1.84926e10 + 3.16226e9                            = 2.16548e10 kg
+    #   in Mt    = 21.6548
+    mt = volume_to_co2eq(7.4, 0.02)
+    assert mt == pytest.approx(21.6548, rel=1e-4)
+
+
+def test_volume_to_co2eq_zero_volume_zero_emissions() -> None:
+    assert volume_to_co2eq(0.0, 0.02) == 0.0
+    assert volume_to_co2eq(0.0, 0.5) == 0.0
+
+
+def test_volume_to_co2eq_zero_slip_is_combustion_only() -> None:
+    # With zero slip, the answer is just volume × combustion EF (in Mt).
+    mt = volume_to_co2eq(1.0, 0.0)
+    expected_kg = 1e9 * CO2_PER_M3_GAS_KG  # bcm → m³ × kg/m³
+    assert mt == pytest.approx(expected_kg / 1e9)
+
+
+def test_volume_to_co2eq_higher_slip_higher_emissions() -> None:
+    # Slipped CH4 carries ~8× the climate impact of burned CO2 per m³,
+    # so any monotonic slip increase strictly raises the headline.
+    low = volume_to_co2eq(1.0, 0.02)
+    mid = volume_to_co2eq(1.0, 0.05)
+    high = volume_to_co2eq(1.0, 0.10)
+    assert low < mid < high
+
+
+def test_volume_to_co2eq_handles_series() -> None:
+    s = pd.Series([1.0, 7.4, 0.0])
+    out = volume_to_co2eq(s, 0.02)
+    assert isinstance(out, pd.Series)
+    assert len(out) == 3
+    assert out.iloc[2] == 0.0
+    assert out.iloc[1] > out.iloc[0]
+
+
+def test_volume_to_co2eq_rejects_invalid_slip() -> None:
+    with pytest.raises(ValueError, match="methane_slip"):
+        volume_to_co2eq(1.0, -0.1)
+    with pytest.raises(ValueError, match="methane_slip"):
+        volume_to_co2eq(1.0, 1.5)
+
+
+def test_volume_to_co2eq_constants_match_published_values() -> None:
+    # Guard against silent edits to the documented IPCC defaults.
+    assert CO2_PER_M3_GAS_KG == 2.55  # IPCC 2006 Guidelines
+    assert METHANE_GWP100_FOSSIL == 29.8  # IPCC AR6 WG1 Ch.7
+    assert METHANE_DENSITY_KG_PER_M3 == 0.717  # std conditions
