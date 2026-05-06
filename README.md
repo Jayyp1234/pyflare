@@ -150,15 +150,23 @@ Covenant 2.1).
 
 ---
 
-## Acknowledgements
+## Acknowledgements & data attribution
 
-VIIRS Nightfire data is produced by the [Earth Observation Group at the
-Colorado School of Mines](https://eogdata.mines.edu/). Annual flaring
-estimates are published by the World Bank's
+> This product was made utilizing VIIRS Nightfire (VNF) nightly data produced by the Earth Observation Group, Payne Institute for Public Policy, Colorado School of Mines.
+
+Annual flaring volumes are published by the World Bank's
 [Global Gas Flaring Reduction Partnership](https://www.worldbank.org/en/programs/gasflaringreduction).
 
 This project would not exist without the methodology developed and freely
 documented by Christopher Elvidge and colleagues.
+
+Pyflare users who fetch raw VNF data via `fetch_vnf_nightly()` are bound
+by the same VIIRS Nightfire Academic Data Use License terms — see
+[`LICENSING_NOTES.md`](LICENSING_NOTES.md) for the developer-facing
+summary of the constraints (no raw redistribution, attribution required
+on derived products, weekly minimum temporal aggregation for public
+charts, year-N flared-volume publication only after EOG has published
+year-N at https://eogdata.mines.edu/products/vnf/global_gas_flare.html).
 
 ---
 
