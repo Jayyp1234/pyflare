@@ -23,7 +23,7 @@ You don't need to be from the country to maintain it, but a credible local conne
 ## Development setup
 
 ```bash
-git clone https://github.com/YOUR-HANDLE/pyflare.git
+git clone https://github.com/jayyp1234/pyflare.git
 cd pyflare
 python -m venv .venv
 source .venv/bin/activate

@@ -2,7 +2,7 @@
 
 > Open Python toolkit for satellite-based gas flaring analytics across African oil-producing nations.
 
-[![CI](https://github.com/YOUR-HANDLE/pyflare/actions/workflows/ci.yml/badge.svg)](https://github.com/YOUR-HANDLE/pyflare/actions)
+[![CI](https://github.com/jayyp1234/pyflare/actions/workflows/ci.yml/badge.svg)](https://github.com/jayyp1234/pyflare/actions)
 [![PyPI](https://img.shields.io/pypi/v/pyflare.svg)](https://pypi.org/project/pyflare/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
@@ -130,7 +130,7 @@ GGFR methodologies and the toolkit:
   title   = {pyflare: Open Python toolkit for satellite-based gas flaring
              analytics across African oil-producing nations},
   year    = {2026},
-  url     = {https://github.com/YOUR-HANDLE/pyflare}
+  url     = {https://github.com/jayyp1234/pyflare}
 }
 ```
 

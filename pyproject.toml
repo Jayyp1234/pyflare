@@ -53,10 +53,10 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/jpokekeebube/pyflare"
+Homepage = "https://github.com/jayyp1234/pyflare"
 Documentation = "https://pyflare.readthedocs.io"
-Repository = "https://github.com/jpokekeebube/pyflare"
-Issues = "https://github.com/jpokekeebube/pyflare/issues"
+Repository = "https://github.com/jayyp1234/pyflare"
+Issues = "https://github.com/jayyp1234/pyflare/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]
