@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: "If you use pyflare in research or reporting, please cite it as below."
+title: "pyflare: Open Python toolkit for satellite-based gas flaring analytics across African oil-producing nations"
+authors:
+  - family-names: Okeke
+    given-names: Johnpaul
+    email: okekejohnpaul12@gmail.com
+version: 0.1.0
+date-released: "2026-05-16"
+license: MIT
+repository-code: "https://github.com/jayyp1234/pyflare"
+url: "https://github.com/jayyp1234/pyflare"
+keywords:
+  - VIIRS
+  - Nightfire
+  - gas flaring
+  - methane
+  - Africa
+  - remote sensing
+  - climate
+  - energy
