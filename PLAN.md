@@ -32,8 +32,8 @@ Everything else is **nice-to-have for the poster, must-have for v1.0** (Streamli
 | ID | Task | Day | Notes |
 |---|---|---|---|
 | Y1 | Pick GitHub handle, create repo, share URL | 1 | `jayyp1234` confirmed |
-| Y2 | Register EOG account at eogdata.mines.edu | 1 | Approval lead time 2-7 days |
-| Y3 | Pick PyPI name (`pyflare` or fallback) | 1 | Fallbacks: `africaflare`, `flarescope-africa` |
+| Y2 | Email eog@mines.edu for academic VNF license (flow changed Jan 2025: license replaces simple account registration) | 1 | Turnaround unknown — could exceed a week. Synthetic fallback in notebooks is now load-bearing |
+| Y3 | Pick PyPI name (`pyflare` or fallback) | 1 | **Decided 2026-05-07: `pyflare-africa`** (the original `pyflare` is taken by an abandoned 2015 Cloudflare adapter). Distribution renamed; `import pyflare` is unchanged. |
 | Y4 | Send 3 cold emails (Elvidge, SDN, Adeyanju) | 2 | Claude drafts; Johnpaul edits voice + sends |
 | Y5 | Write 200-word abstract | 8-12 | **PyCon CFP rule: LLM-written = auto-reject** |
 | Y6 | Write 2-sentence elevator pitch | 12 | Same rule |
@@ -141,7 +141,7 @@ Beyond pass / fail, on these days we ask:
 
 | Risk | Probability | Impact | Mitigation |
 |---|---|---|---|
-| EOG account approval > 7 days | Med | High | Synthetic fallback in all notebooks |
+| EOG license approval > 7 days (new license-based flow as of Jan 2025) | **High** | High | Synthetic fallback in all notebooks; email eog@mines.edu Day 0; Payne Institute is the licensing entity |
 | `pyflare` taken on PyPI | Med | Med | Day 1 check; fallbacks: `africaflare`, `flarescope-africa` |
 | Elvidge doesn't reply | Med | Med | 3 targets in parallel; SDN + Adeyanju acceptable |
 | WorldPop raster too heavy | High | Low | Synthetic test data; document integration path |

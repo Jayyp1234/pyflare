@@ -10,10 +10,12 @@ from pyflare.analysis import (
     CO2_PER_M3_GAS_KG,
     DEFAULT_METHANE_SLIP,
     FLARE_TEMP_THRESHOLD_K,
+    KNOWN_AFRICAN_SETTLEMENTS,
     METHANE_DENSITY_KG_PER_M3,
     METHANE_GWP100_FOSSIL,
     aggregate_to_sites,
     classify_detection_type,
+    communities_near_sites,
     estimate_flared_volume,
     methane_proxy,
     persistence_score,
@@ -252,3 +254,98 @@ def test_volume_to_co2eq_constants_match_published_values() -> None:
     assert CO2_PER_M3_GAS_KG == 2.55  # IPCC 2006 Guidelines
     assert METHANE_GWP100_FOSSIL == 29.8  # IPCC AR6 WG1 Ch.7
     assert METHANE_DENSITY_KG_PER_M3 == 0.717  # std conditions
+
+
+# ---------------------------------------------------------------------------
+# communities_near_sites — second wow-shot (gate G6)
+# ---------------------------------------------------------------------------
+
+
+def test_communities_near_sites_returns_expected_columns() -> None:
+    sites = pd.DataFrame({
+        "site_id": [0, 1],
+        "longitude": [7.16, 5.18],
+        "latitude":  [4.41, 5.65],
+    })
+    out = communities_near_sites(sites, radius_km=10.0)
+    assert set(out.columns) == {
+        "site_id",
+        "n_communities_within_radius",
+        "population_exposed",
+        "communities",
+        "nearest_community",
+        "nearest_distance_km",
+    }
+    assert len(out) == 2
+
+
+def test_communities_near_sites_finds_bonny_for_bonny_lng() -> None:
+    sites = pd.DataFrame({
+        "site_id": [42],
+        "longitude": [7.16],
+        "latitude":  [4.41],
+    })
+    out = communities_near_sites(sites, radius_km=10.0)
+    row = out.iloc[0]
+    assert row["nearest_community"] == "Bonny Town"
+    assert row["nearest_distance_km"] < 5.0
+    assert row["population_exposed"] >= 215_000  # Bonny Town alone
+
+
+def test_communities_near_sites_handles_remote_site() -> None:
+    # Empty quarter of Algeria — no settlement within 10 km.
+    sites = pd.DataFrame({
+        "site_id": [99],
+        "longitude": [4.0],
+        "latitude":  [25.0],
+    })
+    out = communities_near_sites(sites, radius_km=10.0)
+    row = out.iloc[0]
+    assert row["n_communities_within_radius"] == 0
+    assert row["population_exposed"] == 0
+    assert row["nearest_community"] == ""
+
+
+def test_communities_near_sites_radius_increases_match_count() -> None:
+    sites = pd.DataFrame({
+        "site_id": [0],
+        "longitude": [7.05],  # Port Harcourt centre
+        "latitude":  [4.83],
+    })
+    small = communities_near_sites(sites, radius_km=5.0)
+    big = communities_near_sites(sites, radius_km=50.0)
+    assert big.iloc[0]["n_communities_within_radius"] >= small.iloc[0]["n_communities_within_radius"]
+    assert big.iloc[0]["population_exposed"] >= small.iloc[0]["population_exposed"]
+
+
+def test_communities_near_sites_handles_empty_input() -> None:
+    sites = pd.DataFrame(columns=["site_id", "longitude", "latitude"])
+    out = communities_near_sites(sites)
+    assert out.empty
+    # Schema preserved on empty.
+    assert "population_exposed" in out.columns
+
+
+def test_communities_near_sites_accepts_custom_settlement_dict() -> None:
+    sites = pd.DataFrame({
+        "site_id": [0],
+        "longitude": [0.0],
+        "latitude":  [0.0],
+    })
+    custom = {"Synthetic Town": (0.05, 0.0, 12_345)}
+    out = communities_near_sites(sites, radius_km=20.0, settlements=custom)
+    row = out.iloc[0]
+    assert row["nearest_community"] == "Synthetic Town"
+    assert row["population_exposed"] == 12_345
+
+
+def test_known_african_settlements_covers_priority_countries() -> None:
+    # Sanity: at least one entry per priority producer country region.
+    names_lower = {n.lower() for n in KNOWN_AFRICAN_SETTLEMENTS}
+    must_have = {
+        "port harcourt",   # Niger Delta
+        "hassi messaoud",  # Algeria Sahara
+        "brega",           # Libya
+        "soyo",            # Angola
+    }
+    assert must_have.issubset(names_lower)

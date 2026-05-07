@@ -14,6 +14,7 @@ Quick start
 from pyflare.analysis import (
     aggregate_to_sites,
     classify_detection_type,
+    communities_near_sites,
     estimate_flared_volume,
     methane_proxy,
     persistence_score,
@@ -45,6 +46,7 @@ __all__ = [
     "estimate_flared_volume",
     "methane_proxy",
     "volume_to_co2eq",
+    "communities_near_sites",
     # Meta
     "__version__",
 ]

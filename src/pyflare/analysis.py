@@ -455,3 +455,178 @@ def volume_to_co2eq(
 
     total_kg = combustion_co2_kg + methane_co2eq_kg
     return total_kg / 1e9  # kg → Mt
+
+
+# ---------------------------------------------------------------------------
+# Communities near flare sites
+# ---------------------------------------------------------------------------
+
+#: Curated population reference for major settlements in African
+#: oil/gas-producing regions. Each entry is ``(longitude, latitude,
+#: population)``. Populations are approximate (drawn from public census /
+#: Wikipedia summaries circa 2024) and intended for screening-level
+#: exposure analysis only — for production work, integrate WorldPop or a
+#: national census layer. Niger Delta is over-represented because pyflare's
+#: pilot case study sits there; expand by country as country maintainers
+#: are recruited (see CONTRIBUTING.md).
+KNOWN_AFRICAN_SETTLEMENTS: dict[str, tuple[float, float, int]] = {
+    # Niger Delta (Nigeria)
+    "Port Harcourt":     ( 7.05,   4.83, 1_865_000),
+    "Yenagoa":           ( 6.27,   4.93,   350_000),
+    "Warri":             ( 5.75,   5.52,   311_000),
+    "Sapele":            ( 5.69,   5.89,   174_000),
+    "Aba":               ( 7.37,   5.10, 1_180_000),
+    "Owerri":            ( 7.04,   5.49,   401_000),
+    "Bonny Town":        ( 7.17,   4.45,   215_000),
+    "Forcados Town":     ( 5.36,   5.34,    12_000),
+    "Onne":              ( 7.16,   4.71,    50_000),
+    "Brass":             ( 6.24,   4.32,    30_000),
+    "Soku":              ( 6.66,   4.38,    15_000),
+    "Lagos":             ( 3.38,   6.50, 15_388_000),
+    # Algeria — Sahara basins
+    "Hassi Messaoud":    ( 6.05,  31.70,    75_000),
+    "Hassi R'Mel":       ( 3.27,  32.93,     7_000),
+    "Touggourt":         ( 6.07,  33.10,   220_000),
+    "Ouargla":           ( 5.32,  31.95,   195_000),
+    "In Salah":          ( 2.47,  27.20,    37_000),
+    "Ghardaia":          ( 3.67,  32.49,   135_000),
+    "Algiers":           ( 3.05,  36.75, 3_915_000),
+    # Libya — Sirte basin + coast
+    "Brega":             (19.58,  30.41,    35_000),
+    "Marsa el Brega":    (19.62,  30.41,     9_000),
+    "Ras Lanuf":         (18.55,  30.50,    20_000),
+    "Sirte":             (16.59,  31.20,   128_000),
+    "Sebha":             (14.43,  27.04,   210_000),
+    "Benghazi":          (20.07,  32.12,   670_000),
+    "Tripoli":           (13.19,  32.89, 1_158_000),
+    # Angola — coast + offshore-adjacent
+    "Soyo":              (12.37,  -6.13,   200_000),
+    "Cabinda":           (12.20,  -5.55,   700_000),
+    "N'zeto":            (12.86,  -7.23,    35_000),
+    "Lobito":            (13.55, -12.36,   357_000),
+    "Sumbe":             (13.84, -11.21,    30_000),
+    "Luanda":            (13.23,  -8.84, 8_330_000),
+}
+
+
+def communities_near_sites(
+    sites: pd.DataFrame,
+    *,
+    lon_col: str = "longitude",
+    lat_col: str = "latitude",
+    site_id_col: str = "site_id",
+    radius_km: float = 10.0,
+    settlements: dict[str, tuple[float, float, int]] | None = None,
+) -> pd.DataFrame:
+    """For each flare site, list nearby communities and their estimated population.
+
+    A screening-level exposure analysis: scan a curated population
+    reference for settlements within ``radius_km`` of each flare site
+    and report how many communities are nearby and their summed
+    population. This complements the climate-impact headline
+    (:func:`volume_to_co2eq`) with a public-health framing that resonates
+    for advocacy and journalism use cases.
+
+    The default settlement reference (:data:`KNOWN_AFRICAN_SETTLEMENTS`)
+    is intentionally small and biased toward the Niger Delta — the pilot
+    study area. Pass a custom dict for higher-fidelity work or for
+    countries not yet covered.
+
+    Distances are computed via the equirectangular approximation, which
+    introduces ~0.1 % error inside a 10 km radius at low latitudes —
+    acceptable for screening at 10 km radius. For polar work, pass a
+    haversine helper externally.
+
+    Parameters
+    ----------
+    sites
+        Site-level frame, ideally produced by :func:`aggregate_to_sites`.
+    lon_col, lat_col
+        Coordinate column names on ``sites``.
+    site_id_col
+        Name of the unique site identifier column on ``sites``.
+    radius_km
+        Exposure radius. 10 km is the default per the project's framing
+        ("communities within walking distance of a flare stack"). 5 km
+        is conservative; 25 km is the upper bound used in the public
+        health literature (e.g. Argo et al. 2002 for the Niger Delta).
+    settlements
+        Override the default population reference. Keys are place names,
+        values are ``(lon, lat, population)`` tuples.
+
+    Returns
+    -------
+    pandas.DataFrame
+        One row per input site with the columns:
+
+        - ``site_id`` — copied from the input
+        - ``n_communities_within_radius`` — count of matched settlements
+        - ``population_exposed`` — sum of matched populations
+        - ``communities`` — comma-separated, distance-sorted list of names
+        - ``nearest_community`` — closest match, or empty string
+        - ``nearest_distance_km`` — distance to the closest match,
+          or NaN if no settlement falls inside the radius
+
+    Examples
+    --------
+    >>> sites = pd.DataFrame({
+    ...     "site_id": [0, 1],
+    ...     "longitude": [7.16, 5.18],
+    ...     "latitude": [4.41, 5.65],
+    ... })
+    >>> out = communities_near_sites(sites, radius_km=10.0)
+    >>> out["nearest_community"].iloc[0]
+    'Bonny Town'
+    """
+    pop = settlements or KNOWN_AFRICAN_SETTLEMENTS
+
+    if sites.empty:
+        return pd.DataFrame(
+            columns=[
+                site_id_col,
+                "n_communities_within_radius",
+                "population_exposed",
+                "communities",
+                "nearest_community",
+                "nearest_distance_km",
+            ]
+        )
+
+    rows: list[dict[str, object]] = []
+    for _, site in sites.iterrows():
+        site_lon = float(site[lon_col])
+        site_lat = float(site[lat_col])
+        cos_lat = math.cos(math.radians(site_lat))
+
+        matches: list[tuple[str, float, int]] = []
+        for name, (lon, lat, population) in pop.items():
+            dlon_km = (lon - site_lon) * 111.320 * cos_lat
+            dlat_km = (lat - site_lat) * 110.574
+            dist = math.hypot(dlon_km, dlat_km)
+            if dist <= radius_km:
+                matches.append((name, dist, population))
+
+        matches.sort(key=lambda t: t[1])
+
+        if matches:
+            nearest_name, nearest_dist, _ = matches[0]
+            community_list = ", ".join(name for name, _, _ in matches)
+            total_pop = sum(p for _, _, p in matches)
+        else:
+            nearest_name = ""
+            nearest_dist = float("nan")
+            community_list = ""
+            total_pop = 0
+
+        rows.append(
+            {
+                site_id_col: site[site_id_col],
+                "n_communities_within_radius": len(matches),
+                "population_exposed": total_pop,
+                "communities": community_list,
+                "nearest_community": nearest_name,
+                "nearest_distance_km": nearest_dist,
+            }
+        )
+
+    return pd.DataFrame(rows)

@@ -35,6 +35,7 @@ from __future__ import annotations
 import gzip
 import io
 import logging
+import time
 from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
@@ -81,12 +82,19 @@ AFRICAN_PRODUCERS_BBOX: dict[str, tuple[float, float, float, float]] = {
 # ---------------------------------------------------------------------------
 
 GGFR_DATA_URL = (
-    "https://www.worldbank.org/content/dam/sites/ggfr/data/"
-    "global-gas-flaring-volumes-by-country.csv"
+    "https://thedocs.worldbank.org/en/doc/"
+    "bd2432bbb0e514986f382f61b14b2608-0400072025/related/"
+    "Flare-volume-and-intensity-estimates-2012-2024.xlsx"
 )
-"""Public GGFR annual flared-volume table. The exact URL is updated by the
-World Bank annually; users may need to override via the ``url`` parameter
-of :func:`fetch_ggfr_annual` if the path changes."""
+"""Public GGFR annual flared-volume table.
+
+As of the 2025 release the World Bank publishes this dataset as an
+``.xlsx`` workbook with three sheets — ``Flare volume``, ``Flaring
+intensity``, and ``Oil production`` — each in wide format (one row per
+country, year columns). :func:`fetch_ggfr_annual` reads ``Flare volume``
+and melts to a tidy long-format frame. The URL is rotated annually; pass
+the ``url`` keyword to :func:`fetch_ggfr_annual` to override.
+"""
 
 VNF_BASE_URL = "https://eogdata.mines.edu/wwwdata/viirs_products/vnf/v30/csv"
 """Base URL for VIIRS Nightfire v3.0 CSV archive at NOAA EOG.
@@ -95,13 +103,32 @@ Daily files follow the pattern::
 
     {VNF_BASE_URL}/{satellite}/{year}/VNF_{satellite}_d{YYYYMMDD}_noaa_v30.csv.gz
 
-EOG requires free registration for bulk archive access; pass credentials
-via the ``EOG_USERNAME`` and ``EOG_PASSWORD`` environment variables, or as
-arguments to :func:`fetch_vnf_nightly`. See https://eogdata.mines.edu/.
+EOG access uses OAuth 2.0 (Keycloak password grant) as of 2026.
+:func:`fetch_vnf_nightly` resolves credentials from the environment
+(``EOG_CLIENT_ID``, ``EOG_CLIENT_SECRET``, ``EOG_USERNAME``,
+``EOG_PASSWORD``) or keyword arguments. See
+https://eogdata.mines.edu/products/vnf/subscribers/.
+"""
+
+EOG_TOKEN_URL = (
+    "https://eogauth-new.mines.edu/realms/eog/protocol/openid-connect/token"
+)
+"""Keycloak OAuth 2.0 token endpoint for the EOG VNF API.
+
+The password-grant flow exchanges (client_id, client_secret, username,
+password) for a short-lived JWT access token (typical TTL: 5 minutes).
+Pyflare caches tokens in-process and attaches them as ``Bearer`` headers
+on VNF downloads. Client credentials are issued by EOG on request once
+the academic license is approved — email ``eog@mines.edu``.
 """
 
 # Default cache lives under the user's home directory; configurable per call.
 DEFAULT_CACHE = Path.home() / ".cache" / "pyflare"
+
+# OAuth token cache, keyed by (client_id, username). In-process only —
+# tokens are never persisted to disk because they grant data access.
+_EOG_TOKEN_CACHE: dict[tuple[str, str], tuple[str, float]] = {}
+_EOG_TOKEN_TTL_BUFFER_SECONDS: int = 30
 
 
 # ---------------------------------------------------------------------------
@@ -132,21 +159,26 @@ def fetch_ggfr_annual(
     refresh: bool = False,
     return_metadata: bool = False,
     timeout: int = 60,
+    sheet_name: str = "Flare volume",
 ) -> pd.DataFrame | FetchResult:
     """Fetch World Bank GGFR annual flared-volume table.
 
     Returns a tidy DataFrame with one row per country-year and the columns
-    ``country``, ``iso3``, ``year``, ``bcm_flared`` (billion cubic metres),
-    where present in the source. Additional columns from the upstream file
-    are preserved unchanged.
+    ``country``, ``year``, ``bcm_flared`` (billion cubic metres). Country
+    names are normalised to pyflare's canonical set (matching
+    :data:`AFRICAN_PRODUCERS_BBOX` keys) so the result composes cleanly
+    with :func:`filter_country`.
+
+    The upstream source has been an ``.xlsx`` workbook since the 2025
+    release; reading it requires ``openpyxl`` (a core pyflare dependency).
 
     Parameters
     ----------
     url
         Override the default data URL. Useful when the World Bank rotates
-        the CSV path between annual updates.
+        the path between annual updates.
     cache_dir
-        Directory to cache the raw CSV. Defaults to ``~/.cache/pyflare``.
+        Directory to cache the raw XLSX. Defaults to ``~/.cache/pyflare``.
     refresh
         If True, bypass the cache and re-download.
     return_metadata
@@ -154,6 +186,10 @@ def fetch_ggfr_annual(
         instead of a bare DataFrame.
     timeout
         HTTP timeout in seconds.
+    sheet_name
+        Workbook sheet to read. Defaults to ``"Flare volume"``; other
+        sheets in the GGFR workbook are ``"Flaring intensity"`` and
+        ``"Oil production"``.
 
     Returns
     -------
@@ -168,7 +204,7 @@ def fetch_ggfr_annual(
     """
     cache_root = Path(cache_dir) if cache_dir else DEFAULT_CACHE
     cache_root.mkdir(parents=True, exist_ok=True)
-    cache_file = cache_root / "ggfr_annual.csv"
+    cache_file = cache_root / "ggfr_annual.xlsx"
 
     if refresh or not cache_file.exists():
         logger.info("Downloading GGFR annual data from %s", url)
@@ -178,8 +214,8 @@ def fetch_ggfr_annual(
     else:
         logger.debug("Reading GGFR annual data from cache: %s", cache_file)
 
-    df = pd.read_csv(cache_file)
-    df = _standardize_ggfr_schema(df)
+    raw = pd.read_excel(cache_file, sheet_name=sheet_name)
+    df = _melt_ggfr_wide(raw)
 
     if return_metadata:
         return FetchResult(
@@ -196,6 +232,8 @@ def fetch_vnf_nightly(
     obs_date: date | str,
     *,
     satellite: str = "snpp",
+    client_id: str | None = None,
+    client_secret: str | None = None,
     username: str | None = None,
     password: str | None = None,
     cache_dir: Path | str | None = None,
@@ -209,6 +247,12 @@ def fetch_vnf_nightly(
     responsibility (see :mod:`pyflare.analysis`). This function only
     handles transport, decompression, and schema parsing.
 
+    Authentication uses the OAuth 2.0 password-grant flow: pyflare
+    exchanges your credentials for a short-lived JWT access token
+    (cached in-process for ~5 minutes) and attaches it as a ``Bearer``
+    header. Client credentials are issued by EOG on request once the
+    academic license is approved.
+
     Parameters
     ----------
     obs_date
@@ -217,10 +261,14 @@ def fetch_vnf_nightly(
     satellite
         Satellite identifier. ``"snpp"`` (Suomi NPP, 2012-present) or
         ``"j01"`` (NOAA-20 / JPSS-1, 2018-present).
+    client_id, client_secret
+        OAuth 2.0 client credentials. Fall back to ``EOG_CLIENT_ID`` /
+        ``EOG_CLIENT_SECRET`` environment variables. Email
+        ``eog@mines.edu`` to obtain these once your license is signed.
     username, password
-        EOG credentials. If omitted, falls back to ``EOG_USERNAME`` and
-        ``EOG_PASSWORD`` environment variables. Register free at
-        https://eogdata.mines.edu/.
+        EOG account credentials (the pair you registered at
+        https://eogdata.mines.edu/products/register/). Fall back to
+        ``EOG_USERNAME`` / ``EOG_PASSWORD``.
     cache_dir
         Directory to cache compressed nightly files.
     refresh
@@ -236,9 +284,13 @@ def fetch_vnf_nightly(
 
     Raises
     ------
+    RuntimeError
+        If any of the four credential parts (client_id, client_secret,
+        username, password) is missing.
     requests.HTTPError
-        If EOG returns an error status (commonly 401 if credentials are
-        missing or 404 if the date has no data due to cloud cover).
+        If EOG returns an error status (commonly 401 from the token
+        endpoint if credentials are wrong, or 404 if the requested date
+        has no data due to cloud cover).
     """
     import os
 
@@ -247,25 +299,41 @@ def fetch_vnf_nightly(
     if sat not in {"snpp", "j01"}:
         raise ValueError(f"satellite must be 'snpp' or 'j01', got {satellite!r}")
 
+    cid = client_id or os.environ.get("EOG_CLIENT_ID")
+    csec = client_secret or os.environ.get("EOG_CLIENT_SECRET")
+    user = username or os.environ.get("EOG_USERNAME")
+    pwd = password or os.environ.get("EOG_PASSWORD")
+    if not all((cid, csec, user, pwd)):
+        raise RuntimeError(
+            "EOG OAuth2 credentials required. Register at "
+            "https://eogdata.mines.edu/products/register/ , sign the "
+            "academic license, then email eog@mines.edu for a Client ID. "
+            "Set EOG_CLIENT_ID, EOG_CLIENT_SECRET, EOG_USERNAME, "
+            "EOG_PASSWORD (or pass as keyword arguments)."
+        )
+
     # Build the canonical EOG URL.
     fname = f"VNF_{sat}_d{obs:%Y%m%d}_noaa_v30.csv.gz"
     url = f"{VNF_BASE_URL}/{sat}/{obs:%Y}/{fname}"
-
-    user = username or os.environ.get("EOG_USERNAME")
-    pwd = password or os.environ.get("EOG_PASSWORD")
-    if not (user and pwd):
-        raise RuntimeError(
-            "EOG credentials required. Register at https://eogdata.mines.edu/ "
-            "and pass username/password or set EOG_USERNAME / EOG_PASSWORD."
-        )
 
     cache_root = Path(cache_dir) if cache_dir else DEFAULT_CACHE / "vnf"
     cache_root.mkdir(parents=True, exist_ok=True)
     cache_file = cache_root / fname
 
     if refresh or not cache_file.exists():
+        token = _get_eog_access_token(
+            client_id=cid,  # type: ignore[arg-type]
+            client_secret=csec,  # type: ignore[arg-type]
+            username=user,  # type: ignore[arg-type]
+            password=pwd,  # type: ignore[arg-type]
+            timeout=timeout,
+        )
         logger.info("Downloading VNF for %s (%s) from %s", obs, sat, url)
-        resp = requests.get(url, auth=(user, pwd), timeout=timeout)
+        resp = requests.get(
+            url,
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=timeout,
+        )
         resp.raise_for_status()
         cache_file.write_bytes(resp.content)
 
@@ -274,6 +342,68 @@ def fetch_vnf_nightly(
 
     df = _standardize_vnf_schema(df, obs_date=obs, satellite=sat)
     return df
+
+
+def _get_eog_access_token(
+    *,
+    client_id: str,
+    client_secret: str,
+    username: str,
+    password: str,
+    timeout: int = 30,
+) -> str:
+    """Obtain (or return cached) an EOG OAuth 2.0 access token.
+
+    Uses the resource-owner password-credentials grant against the
+    Keycloak realm at :data:`EOG_TOKEN_URL`. The returned token is a JWT
+    that should be sent as ``Authorization: Bearer <token>`` on
+    subsequent VNF requests. Tokens are cached in-process by
+    ``(client_id, username)`` and refreshed 30 seconds before expiry.
+
+    Parameters
+    ----------
+    client_id, client_secret
+        OAuth client credentials issued by EOG.
+    username, password
+        EOG account credentials.
+    timeout
+        HTTP timeout in seconds.
+
+    Returns
+    -------
+    str
+        Bearer access token.
+
+    Raises
+    ------
+    requests.HTTPError
+        If the token endpoint returns a non-2xx status (typically 401
+        for bad credentials).
+    """
+    cache_key = (client_id, username)
+    now = time.time()
+    cached = _EOG_TOKEN_CACHE.get(cache_key)
+    if cached and cached[1] > now:
+        return cached[0]
+
+    resp = requests.post(
+        EOG_TOKEN_URL,
+        data={
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "username": username,
+            "password": password,
+            "grant_type": "password",
+        },
+        timeout=timeout,
+    )
+    resp.raise_for_status()
+    payload = resp.json()
+    token = payload["access_token"]
+    expires_in = int(payload.get("expires_in", 300))
+    expiry = now + max(expires_in - _EOG_TOKEN_TTL_BUFFER_SECONDS, 0)
+    _EOG_TOKEN_CACHE[cache_key] = (token, expiry)
+    return token
 
 
 def filter_bbox(
@@ -378,6 +508,50 @@ def _match_country(country: str) -> str:
         f"{country!r} is not a recognised African producer. "
         f"Supported: {sorted(AFRICAN_PRODUCERS_BBOX)}"
     )
+
+
+#: World Bank GGFR uses idiosyncratic country labels; this map normalises
+#: them to pyflare's canonical names (matching :data:`AFRICAN_PRODUCERS_BBOX`).
+#: Names not in the map pass through unchanged.
+_WB_TO_PYFLARE_COUNTRY: dict[str, str] = {
+    "Congo, Rep.": "Republic of Congo",
+    "Democratic Republic of the Congo": "DR Congo",
+    "Egypt, Arab Rep.": "Egypt",
+    "Iran, Islamic Rep.": "Iran",
+    "Russian Federation": "Russia",
+    "Syrian Arab Republic": "Syria",
+    "Venezuela, RB": "Venezuela",
+    "Yemen, Rep.": "Yemen",
+}
+
+
+def _canonicalise_wb_country(name: object) -> object:
+    """Map a single World Bank country label to pyflare's canonical form."""
+    if not isinstance(name, str):
+        return name
+    return _WB_TO_PYFLARE_COUNTRY.get(name, name)
+
+
+def _melt_ggfr_wide(raw: pd.DataFrame) -> pd.DataFrame:
+    """Convert the World Bank GGFR wide-format sheet to tidy long format.
+
+    Source layout: one row per country with year columns (``2012`` through
+    the latest year covered). Output columns: ``country``, ``year``,
+    ``bcm_flared`` — one row per country-year. Country names are normalised
+    via :data:`_WB_TO_PYFLARE_COUNTRY`.
+    """
+    country_col = raw.columns[0]  # WB labels this 'Country, bcm' / similar
+    year_cols = [c for c in raw.columns[1:] if isinstance(c, (int, float))]
+    long = raw.melt(
+        id_vars=[country_col],
+        value_vars=year_cols,
+        var_name="year",
+        value_name="bcm_flared",
+    ).rename(columns={country_col: "country"})
+    long["country"] = long["country"].apply(_canonicalise_wb_country)
+    long["year"] = pd.to_numeric(long["year"], errors="coerce").astype("Int64")
+    long["bcm_flared"] = pd.to_numeric(long["bcm_flared"], errors="coerce")
+    return long.dropna(subset=["country", "year"]).reset_index(drop=True)
 
 
 def _standardize_ggfr_schema(df: pd.DataFrame) -> pd.DataFrame:

@@ -3,7 +3,7 @@
 > Open Python toolkit for satellite-based gas flaring analytics across African oil-producing nations.
 
 [![CI](https://github.com/jayyp1234/pyflare/actions/workflows/ci.yml/badge.svg)](https://github.com/jayyp1234/pyflare/actions)
-[![PyPI](https://img.shields.io/pypi/v/pyflare.svg)](https://pypi.org/project/pyflare/)
+[![PyPI](https://img.shields.io/pypi/v/pyflare-africa.svg)](https://pypi.org/project/pyflare-africa/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 
@@ -34,10 +34,17 @@ Satellite-based monitoring of flares has existed for over a decade, principally 
 
 ## Install
 
+The package is published on PyPI as `pyflare-africa` (the `pyflare` name was already taken by an unrelated, abandoned project). The Python import name stays `pyflare`.
+
 ```bash
-pip install pyflare              # core
-pip install 'pyflare[viz]'       # with map and plot helpers
-pip install 'pyflare[dev]'       # for contributors
+pip install pyflare-africa                     # core
+pip install 'pyflare-africa[viz]'              # with map and plot helpers
+pip install 'pyflare-africa[notebooks]'        # to run the country notebooks
+pip install 'pyflare-africa[dev]'              # for contributors
+```
+
+```python
+import pyflare as pf  # import name unchanged
 ```
 
 ---

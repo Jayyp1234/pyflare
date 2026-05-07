@@ -1,23 +1,29 @@
 """Tests for pyflare.data.
 
-These tests deliberately avoid network calls. The transport functions
-(`fetch_ggfr_annual`, `fetch_vnf_nightly`) are exercised in integration
-tests under tests/integration/, gated on the EOG_USERNAME env var.
+Network calls in transport functions (``fetch_ggfr_annual``,
+``fetch_vnf_nightly``, ``_get_eog_access_token``) are mocked here; live
+integration tests live under ``tests/integration/`` and are gated on the
+EOG credential env vars.
 """
 
 from __future__ import annotations
 
 from datetime import date
+from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
 
+import pyflare.data as pf_data
 from pyflare.data import (
     AFRICA_BBOX,
     AFRICAN_PRODUCERS_BBOX,
     _coerce_date,
+    _get_eog_access_token,
     _match_country,
+    _melt_ggfr_wide,
     _standardize_ggfr_schema,
+    fetch_vnf_nightly,
     filter_africa,
     filter_bbox,
     filter_country,
@@ -159,3 +165,130 @@ def test_africa_bbox_constants_are_consistent() -> None:
     for name, (lo_lon, lo_lat, hi_lon, hi_lat) in AFRICAN_PRODUCERS_BBOX.items():
         assert min_lon <= lo_lon <= hi_lon <= max_lon, name
         assert min_lat <= lo_lat <= hi_lat <= max_lat, name
+
+
+# ---------------------------------------------------------------------------
+# GGFR XLSX → long melt
+# ---------------------------------------------------------------------------
+
+
+def test_melt_ggfr_wide_pivots_to_long_format() -> None:
+    raw = pd.DataFrame(
+        {
+            "Country, bcm": ["Nigeria", "Angola", "Congo, Rep."],
+            2023: [5.786, 1.837, 1.671],
+            2024: [6.480, 2.061, 1.936],
+        }
+    )
+    out = _melt_ggfr_wide(raw)
+    assert set(out.columns) == {"country", "year", "bcm_flared"}
+    assert len(out) == 6  # 3 countries × 2 years
+    nigeria_2024 = out[(out["country"] == "Nigeria") & (out["year"] == 2024)]
+    assert nigeria_2024["bcm_flared"].iloc[0] == pytest.approx(6.480)
+    # World Bank → pyflare canonical name normalisation.
+    rep_congo = out[out["country"] == "Republic of Congo"]
+    assert len(rep_congo) == 2
+
+
+# ---------------------------------------------------------------------------
+# OAuth 2.0 — _get_eog_access_token
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(autouse=True)
+def _clear_token_cache() -> None:
+    """Reset the in-process OAuth token cache between tests."""
+    pf_data._EOG_TOKEN_CACHE.clear()
+
+
+def _mock_token_response(token: str = "test-token-abc", expires_in: int = 300) -> MagicMock:
+    resp = MagicMock()
+    resp.raise_for_status = MagicMock()
+    resp.json = MagicMock(return_value={
+        "access_token": token,
+        "expires_in": expires_in,
+        "token_type": "Bearer",
+    })
+    return resp
+
+
+def test_get_eog_access_token_calls_keycloak_with_password_grant() -> None:
+    with patch("pyflare.data.requests.post", return_value=_mock_token_response()) as mock_post:
+        token = _get_eog_access_token(
+            client_id="cid", client_secret="csec",
+            username="user", password="pwd",
+        )
+
+    assert token == "test-token-abc"
+    mock_post.assert_called_once()
+    args, kwargs = mock_post.call_args
+    assert args[0].endswith("/openid-connect/token")
+    assert kwargs["data"] == {
+        "client_id": "cid",
+        "client_secret": "csec",
+        "username": "user",
+        "password": "pwd",
+        "grant_type": "password",
+    }
+
+
+def test_get_eog_access_token_caches_within_ttl() -> None:
+    with patch("pyflare.data.requests.post", return_value=_mock_token_response()) as mock_post:
+        first = _get_eog_access_token(
+            client_id="cid", client_secret="csec",
+            username="user", password="pwd",
+        )
+        second = _get_eog_access_token(
+            client_id="cid", client_secret="csec",
+            username="user", password="pwd",
+        )
+
+    assert first == second
+    assert mock_post.call_count == 1  # token reused, not re-fetched
+
+
+def test_get_eog_access_token_refetches_after_expiry() -> None:
+    # Tiny TTL forces immediate expiry on the next call.
+    with patch("pyflare.data.requests.post", return_value=_mock_token_response(expires_in=1)) as mock_post:
+        _get_eog_access_token(
+            client_id="cid", client_secret="csec",
+            username="user", password="pwd",
+        )
+        # Patch time so the cached token looks expired.
+        with patch("pyflare.data.time.time", return_value=10**12):  # type: ignore[attr-defined]
+            _get_eog_access_token(
+                client_id="cid", client_secret="csec",
+                username="user", password="pwd",
+            )
+
+    assert mock_post.call_count == 2
+
+
+def test_get_eog_access_token_keys_cache_by_client_and_user() -> None:
+    with patch("pyflare.data.requests.post", return_value=_mock_token_response()) as mock_post:
+        _get_eog_access_token(client_id="cid1", client_secret="s", username="u1", password="p")
+        _get_eog_access_token(client_id="cid1", client_secret="s", username="u2", password="p")
+        _get_eog_access_token(client_id="cid2", client_secret="s", username="u1", password="p")
+
+    assert mock_post.call_count == 3  # three distinct cache keys
+
+
+# ---------------------------------------------------------------------------
+# fetch_vnf_nightly — credential handling
+# ---------------------------------------------------------------------------
+
+
+def test_fetch_vnf_nightly_raises_when_credentials_missing(monkeypatch: pytest.MonkeyPatch) -> None:
+    for var in ("EOG_CLIENT_ID", "EOG_CLIENT_SECRET", "EOG_USERNAME", "EOG_PASSWORD"):
+        monkeypatch.delenv(var, raising=False)
+    with pytest.raises(RuntimeError, match="EOG OAuth2 credentials required"):
+        fetch_vnf_nightly("2024-08-15")
+
+
+def test_fetch_vnf_nightly_rejects_unknown_satellite() -> None:
+    with pytest.raises(ValueError, match="satellite"):
+        fetch_vnf_nightly(
+            "2024-08-15",
+            satellite="unknown",
+            client_id="x", client_secret="x", username="x", password="x",
+        )

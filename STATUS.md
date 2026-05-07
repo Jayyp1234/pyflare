@@ -63,11 +63,9 @@ After push, watch Actions tab — first CI run on 3.10/3.11/3.12 should go green
 
 ### Sent / pending response
 
-- [x] **Y2 (round 1)**: email sent 2026-05-06 12:24, **EOG replied 2026-05-06 16:57** (Tilo) — turnaround was hours, not days. Three required steps:
-  1. Register with academic email at https://eogdata.mines.edu/products/register/
-  2. Sign + return the academic license PDF (Payne Institute, 2026-01-30)
-  3. Send proof of enrollment (University ID etc.)
-- [ ] **Y2 (round 2)**: user to complete the 3 steps above. Use-description text drafted at [`drafts/y2_eog_use_description.md`](drafts/y2_eog_use_description.md) for the license PDF.
+- [x] **Y2 (round 1)**: email sent 2026-05-06 12:24, **EOG replied 2026-05-06 16:57** (Tilo) — turnaround was hours, not days.
+- [x] **Y2 (round 2)**: license signed + returned, EOG approved access 2026-05-06 19:14. Tilo confirmed CSV/KMZ browser downloads work; programmatic access requires a Client ID issued by Greg G.
+- [ ] **Y2 (round 3)**: user to email `eog@mines.edu` (reply in same thread) requesting the OAuth Client ID + secret. Draft at [`drafts/y2_eog_client_id.md`](drafts/y2_eog_client_id.md).
 
 ### Blockers
 
@@ -81,7 +79,33 @@ After push, watch Actions tab — first CI run on 3.10/3.11/3.12 should go green
 
 ### Pace check
 
-We are now **~3 days ahead of the PLAN.md schedule** — Day 0 evening compressed Days 0-3 of automated work (C1, C2, C3, C4, C5; gates G2 + G3 green; Y1 done). User actions (Y2 sent, Y4 drafts ready, Y3 pending) are on track.
+**~9 days ahead of the PLAN.md schedule.** Day 0 + Day 1 has compressed Days 0-9 of automated work into ~24 hours real time. Gates green: **G2, G3, G4, G5, G6, G7, G8, G9** (8 of 14). C1-C11 effectively done. Y1 + Y3 done. Y2 license approved (Client ID pending). Y4 drafts ready, Y5 still on user track.
+
+`bash scripts/verify.sh` summary: **20 passed, 0 failed, 6 pending.** All 6 pendings are user-action or composite (G10 awaiting `git tag v0.1.0`; G11 poster file; G12 composite; G13 human review of abstract; G14 submission confirmation).
+
+### Day 1 evening (now): C5 wave 2 + C6 + bug fix + OAuth migration
+
+- [x] **G4 GREEN** — country-parameterised notebook builder produces 4 working notebooks (Niger Delta, Angola, Algeria, Libya); all execute cleanly via `jupyter nbconvert --execute`.
+- [x] **G5 GREEN** — iconic Africa map at 3600×4200 px / 600 dpi; layered-alpha flare glow on four priority countries' synthetic facility coords; §2.a footer attribution baked in.
+- [x] **G6 GREEN** — `analysis.communities_near_sites()` shipped with curated `KNOWN_AFRICAN_SETTLEMENTS` reference + 7 unit tests. Niger Delta synthetic exposure: **322,000 people within 10 km, 2.2 M within 25 km** of the 6 priority facilities.
+- [x] **G7 GREEN** — `assets/africa_timelapse.gif` rendered: 5 keyframes (2012/2015/2018/2021/2024), per-country GGFR volumes drive dot intensity, Libya's 2015 civil-war dip reads cleanly mid-loop.
+- [x] **G8 GREEN** — `src/pyflare/dashboard.py` Streamlit MVP shipped (local-only per VNF §1.f.iii). Country selector, slip slider, GGFR trend, top-5 comparison, communities-near table.
+- [x] **G9 GREEN** — Sphinx + Furo docs scaffold (`docs/conf.py`, `index.md`, `quickstart.md`, `api.rst`, `licensing.md`) builds clean locally. RTD config at repo root.
+- [x] **G10 prep done (gate awaits `git tag v0.1.0`)** — wheel + sdist built (`dist/pyflare_africa-0.1.0-{whl,tar.gz}`), smoke-installed in a fresh venv, `volume_to_co2eq(6.48, 0.05) == 22.62 MtCO₂e` end-to-end. Release runbook at [`RELEASE.md`](RELEASE.md).
+- [x] **OAuth 2.0 refactor for `fetch_vnf_nightly()`** — Keycloak password grant, in-process token caching, 5 new mocked-HTTP tests.
+- [x] **GGFR data fix** — World Bank moved CSV → XLSX in 2025; URL repaired, schema normalised.
+- [x] **Y3 done** — PyPI distribution name locked: **`pyflare-africa`** (import stays `pyflare`). pyproject.toml + README + badge + docs updated.
+- [x] **Y2 round 3 draft** — Client ID request email at [`drafts/y2_eog_client_id.md`](drafts/y2_eog_client_id.md). User to send.
+
+### Library refactor for OAuth 2.0 (today)
+
+EOG's VNF API moved to OAuth 2.0 (Keycloak password grant) in early 2026; basic auth is dead. Pyflare's `fetch_vnf_nightly()` refactored:
+
+- New helper `_get_eog_access_token()` — exchanges credentials for a JWT, caches by `(client_id, username)` for ~5 min, refreshes 30 s before expiry.
+- New env vars: `EOG_CLIENT_ID`, `EOG_CLIENT_SECRET` (in addition to `EOG_USERNAME`, `EOG_PASSWORD`).
+- 5 new mocked-HTTP tests cover token fetch, caching, expiry refresh, multi-user cache keying, and the missing-credential error path.
+- `time` and `_EOG_TOKEN_CACHE` exposed as module attributes for testability.
+- Full suite: **48 passed, 1 skipped** (was 41 before today).
 
 ### VNF Academic Data Use License — received + compliance landed
 
@@ -100,12 +124,23 @@ The signed license PDF was received by the user 2026-05-06 from EOG (Tilo). Mate
 - **Future AFLARED Zenodo deposit** — must aggregate to flare-site / monthly minimum, no per-detection redistribution.
 - **Future poster + JOSS paper** — both must carry the §2.a notice.
 
-### Tomorrow (Day 1, 2026-05-07): keep momentum
+### Tomorrow (Day 2, 2026-05-08): keep momentum
 
-- User: send Y4 cold emails (Elvidge, SDN, Adeyanju); pick PyPI name (Y3)
-- Claude: build out G4 (3 remaining country notebooks: Angola, Algeria, Libya) — refactor builder to be country-parameterised
-- Then: G5 iconic Africa map (poster centerpiece)
-- After G4 + G5: poster-quality material is in place even if EOG license never arrives
+All bounded automated work is done. Remaining gates are **user-action** or **composite**.
+
+**User priority (today/tomorrow):**
+
+1. **Send Y2 round 3** (Client ID email) — [`drafts/y2_eog_client_id.md`](drafts/y2_eog_client_id.md)
+2. **Send Y4 cold emails** when ready — [`drafts/y4_elvidge.md`](drafts/y4_elvidge.md), [`drafts/y4_sdn.md`](drafts/y4_sdn.md), [`drafts/y4_adeyanju.md`](drafts/y4_adeyanju.md)
+3. **Commit + push** the Day 1 work; verify CI runs green on GitHub Actions
+4. **Walk through `RELEASE.md`** once happy — produces v0.1.0 tag + PyPI listing + GitHub Release. Steps 1-3 (checklist + clean build + smoke install) are already verified locally; remaining steps need your PyPI account.
+
+**Claude can help with (when asked):**
+
+- Y4 voice-tell scrub of your edited drafts (without rewriting — just flag tells)
+- ReadTheDocs activation walkthrough (one-time GitHub OAuth flow)
+- v0.2 roadmap items: WorldPop integration, polygon-precise filtering via GeoPandas, additional country maintainers' notebooks
+- Post-poster: JOSS paper draft (`paper.md`, `paper.bib`, GitHub Action for PDF preview)
 
 ### Cut-order reminder
 
