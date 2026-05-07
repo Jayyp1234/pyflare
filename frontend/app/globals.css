@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   pyflare theme — dark by default. Palette mirrors the iconic Africa map at
+   assets/africa_overview_600dpi.png so the dashboard, the static asset, and
+   the web frontend all read as one piece.
+   --------------------------------------------------------------------------- */
+
+@theme inline {
+  --color-bg: #0a0a0a;
+  --color-bg-elev: #1c1c1c;
+  --color-bg-warm: #1a1208;
+  --color-border: #2a2018;
+  --color-border-soft: #3a2515;
+  --color-text: #f0e8d8;
+  --color-muted: #b8a890;
+  --color-flare-core: #ffaa44;
+  --color-flare-halo: #ff5500;
+  --color-flare-bright: #ffe6c0;
+  --color-brand: #d44500;
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+:root {
+  color-scheme: dark;
+  --background: var(--color-bg);
+  --foreground: var(--color-text);
+}
+
+html, body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans), Inter, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Selection in project orange — small but signals craft. */
+::selection {
+  background: rgba(212, 69, 0, 0.4);
+  color: var(--color-flare-bright);
+}
+
+/* Hero glow — used on the headline number wrapper */
+.pyflare-glow {
+  text-shadow:
+    0 0 20px rgba(255, 90, 0, 0.5),
+    0 0 50px rgba(255, 90, 0, 0.25),
+    0 0 90px rgba(255, 90, 0, 0.12);
+}
+
+/* Subtle radial gradient behind the hero number */
+.pyflare-hero-bg {
+  background:
+    radial-gradient(circle at 50% 60%, rgba(212, 69, 0, 0.25) 0%, transparent 60%),
+    radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0.85) 0%, var(--color-bg) 70%);
+}
+
+/* Slow pulse on the eyebrow text — gives "live" feeling */
+@keyframes pyflare-pulse {
+  0%, 100% { opacity: 0.7; }
+  50%      { opacity: 1; }
+}
+.pyflare-pulse {
+  animation: pyflare-pulse 3.5s ease-in-out infinite;
+}
+
+/* Smooth scrolling for anchor jumps */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Hide scrollbars on horizontal carousels */
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }

@@ -8,9 +8,15 @@ If anything below conflicts with the signed license, **the license wins**.
 
 ## TL;DR for contributors
 
-1. **Don't redistribute raw VNF data.** Pyflare's `fetch_vnf_nightly()` requires user-supplied EOG credentials by design — keep it that way.
-2. **Carry the attribution notice** on any product (chart, map, table, dashboard, paper) generated with real VNF data.
-3. **Don't publish current-year volume or CO₂ numbers calculated from VNF** until EOG has published them at https://eogdata.mines.edu/products/vnf/global_gas_flare.html. The pyflare-computed headline using **GGFR-published** annual volumes (e.g. Nigeria 2024 = 6.48 bcm from the World Bank GGFR 2025 release) is fine because it uses already-public input; the constraint bites if you compute the same thing directly from raw VNF.
+**Pyflare does not bundle, redistribute, mirror, rehost, cache-and-resync, or otherwise share VIIRS Nightfire data.** It is a thin client. Each user must obtain their own VNF Academic Data Use License from EOG at the Colorado School of Mines and supply their own credentials. The repo never contains real VNF rows — every test, notebook, dashboard, and frontend asset uses synthetic stand-ins or already-public derived inputs (GFMR annual volumes).
+
+That stance follows directly from license **§1.b** ("Licensee shall not distribute the VNF Data in machine readable form ... nor in any format that enables bulk download or automated extraction") and **§1.a** ("Licensee shall not sell the VNF Data itself as a product. Only derived products can be repackaged and sold or distributed").
+
+The remaining obligations:
+
+1. **Don't redistribute raw VNF data.** Pyflare's `fetch_vnf_nightly()` requires user-supplied EOG credentials by design — keep it that way. Do not commit downloaded VNF cache files. Do not ship example datasets that contain real VNF rows.
+2. **Carry the attribution notice** on any product (chart, map, table, dashboard, paper) generated with real VNF data — see "Required attribution notice" below.
+3. **Don't publish current-year volume or CO₂ numbers calculated from VNF** until EOG has published them at https://eogdata.mines.edu/products/vnf/global_gas_flare.html. The pyflare-computed headline using **GFMR-published** annual volumes (e.g. Nigeria 2024 = 6.48 bcm from the World Bank GFMR 2025 release) is fine because it uses already-public input; the constraint bites if you compute the same thing directly from raw VNF.
 4. **Aggregate VNF temporal data to weekly+** before public display. Sub-weekly time steps are restricted to the listed exception cases.
 5. **Cite at least one** of the EOG papers listed in the license (we cite Elvidge et al. 2013 + 2016 already; see References below).
 6. **Don't claim EOG / Colorado School of Mines endorsement** without specific prior written permission — including how Christopher Elvidge's potential endorsement (Y4) is framed.
@@ -25,7 +31,7 @@ If anything below conflicts with the signed license, **the license wins**.
 | 1.b | No redistribution in machine-readable form / bulk download | `fetch_vnf_nightly()` requires user creds; no bundled VNF dumps. ✓ compliant. **Action:** never ship sample VNF rows in tests or notebooks. Use synthetic data (as in `notebooks/01_niger_delta.ipynb`). |
 | 1.c | Attribution notice on derived products | **Action:** notice appears in [README acknowledgements](README.md), every notebook header, and must be added to the iconic map (G5) and any future Streamlit dashboard (G8). |
 | 1.d | VNF is controlled information | We never log or print raw VNF rows in CI. ✓ |
-| 1.e | **Don't publish current/recent-year flared-volume or CO₂ numbers from VNF until EOG publishes them** | Headline number in poster + notebook uses **GGFR's published 2024 figure** (Nigeria 6.48 bcm) as input to `volume_to_co2eq()` — that's a public input. Verify against https://eogdata.mines.edu/products/vnf/global_gas_flare.html before publishing any year. **Year currently safe to disclose: ≤ 2024.** |
+| 1.e | **Don't publish current/recent-year flared-volume or CO₂ numbers from VNF until EOG publishes them** | Headline number in poster + notebook uses **GFMR's published 2024 figure** (Nigeria 6.48 bcm) as input to `volume_to_co2eq()` — that's a public input. Verify against https://eogdata.mines.edu/products/vnf/global_gas_flare.html before publishing any year. **Year currently safe to disclose: ≤ 2024.** |
 | 1.f | No sub-weekly temporal profiles publicly | Notebook + future dashboards: aggregate VNF detections to **weekly minimum** before any public chart. Synthetic data unconstrained. **Streamlit dashboard (G8) requires EOG written approval before launch** if it exposes interactive sub-weekly views. |
 | 1.g + 2.b | Cite EOG papers | Already in `pyflare/analysis.py` module docstring (Elvidge 2013, 2016). **Action:** consider citing additional papers from §2.b for v0.2 (Zhizhin 2021, 2025; subpixel emitters; etc.). |
 | 1.h | No use of EOG / Mines names to endorse/promote without permission | **Action:** revise Y4 Elvidge draft so endorsement is framed as personal-from-Elvidge, not as EOG/Mines endorsing pyflare. README must not say "endorsed by EOG" or use EOG/Mines logos without written permission. |
@@ -53,7 +59,7 @@ Pyflare publishes year-N flared-volume / CO₂ estimates only after confirming y
 
 | Year | Cleared? | Source check date |
 |---|---|---|
-| 2024 | ✅ (GGFR 2025 release covers 2024) | 2026-05-06 |
+| 2024 | ✅ (GFMR 2025 release covers 2024) | 2026-05-06 |
 | 2025 | ⏳ pending — re-check before any 2025 publication | n/a |
 
 When updating headline numbers, re-verify the clearance year and update this table.
@@ -102,7 +108,7 @@ When updating headline numbers, re-verify the clearance year and update this tab
 
 - ✅ Christopher Elvidge personally endorses pyflare's correct implementation of his published methodology.
 - ✅ A quote from Elvidge in the README, attributed as "Christopher Elvidge, lead author, *VIIRS Nightfire: Satellite pyrometry at night* (2013)".
-- ❌ "Endorsed by NOAA EOG / Colorado School of Mines" (anywhere).
+- ❌ "Endorsed by EOG / Colorado School of Mines" (anywhere) — and never call EOG "NOAA EOG"; EOG sits at the Colorado School of Mines, not at NOAA.
 - ❌ Use of EOG / Mines logos without specific prior written permission.
 
 The Y4 Elvidge draft has been revised accordingly. The "bonus ask" (link from the EOG project page to pyflare) requires written permission from EOG/Mines and should be made explicitly through `eog@mines.edu` if Elvidge agrees in principle.

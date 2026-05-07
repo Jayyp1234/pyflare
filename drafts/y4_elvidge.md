@@ -1,4 +1,4 @@
-# Y4a — Christopher Elvidge (NOAA EOG / Colorado School of Mines)
+# Y4a — Christopher Elvidge (EOG / Colorado School of Mines)
 
 **Status:** ready to send
 **To:** Christopher Elvidge — confirm current address (likely `cdelvidge@mines.edu` or via the `eog@mines.edu` alias; check the EOG website for his direct address)
@@ -16,7 +16,7 @@
 
 > Dr. Elvidge,
 >
-> Your 2013 *Remote Sensing* paper and the 2016 *Energies* paper on the radiant-heat → flared-volume regression are the foundation of a new open Python toolkit I'm releasing this month. **pyflare** (https://github.com/Jayyp1234/pyflare) wraps both methodologies in a small, peer-reviewable library and applies them to African oil-producing nations. First cut for Nigeria 2024 (using GGFR-published 6.48 bcm flared volume): **19–28 MtCO2e/year** depending on the methane slip assumption.
+> Your 2013 *Remote Sensing* paper and the 2016 *Energies* paper on the radiant-heat → flared-volume regression are the foundation of a new open Python toolkit I'm releasing this month. **pyflare** (https://github.com/Jayyp1234/pyflare) wraps both methodologies in a small, peer-reviewable library and applies them to African oil-producing nations. First cut for Nigeria 2024 (using GFMR-published 6.48 bcm flared volume): **19–28 MtCO2e/year** depending on the methane slip assumption.
 >
 > I'm under the academic VNF license (request approved at the application stage, license documents being returned this week), and I'd like to request a personal endorsement from you — a 2–3 sentence quote attributed to you, the lead author of the underlying methodology, that I can include in the project README. To stay within the license terms (§1.h), I'd frame the quote as your personal endorsement of pyflare's correct implementation of your published methods, not as an EOG/Mines institutional endorsement.
 >
@@ -43,7 +43,7 @@
 
 - [ ] Use Elvidge's direct address: `celvidge@mines.edu` (confirmed in the VNF license document, §Correspondence)
 - [ ] Replace placeholder personal detail in opening with something authentic
-- [x] Headline number updated to 19–28 MtCO2e (GGFR-published 2024 = 6.48 bcm Nigeria)
+- [x] Headline number updated to 19–28 MtCO2e (GFMR-published 2024 = 6.48 bcm Nigeria)
 - [ ] Send AFTER the VNF academic license is signed and acknowledged — looks more credible if you can say "license approved" rather than "license requested"
 - [ ] CC: leave empty (this is a personal ask)
 - [ ] **License compliance:** the body now frames the endorsement as personal-from-Elvidge per VNF license §1.h (no implied EOG/Mines endorsement). Don't drift back to "EOG-endorsed" wording in any reply

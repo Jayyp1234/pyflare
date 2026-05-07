@@ -13,7 +13,9 @@
 
 Africa accounts for a significant share of global gas flaring — the deliberate burning of natural gas at oil and gas facilities. Flaring releases CO₂, unburned methane, and a long tail of local air pollutants into communities that, in many cases, live within walking distance of the flare stack.
 
-Satellite-based monitoring of flares has existed for over a decade, principally through NOAA's **VIIRS Nightfire (VNF)** product and the World Bank's **Global Gas Flaring Reduction (GGFR)** annual estimates. The science is solid. What has been missing is an open Python interface to make the data usable for African researchers, journalists, regulators, and engineers without paywalls or proprietary GIS software.
+Satellite-based monitoring of flares has existed for over a decade, principally through **VIIRS Nightfire (VNF)** — produced by the Earth Observation Group (EOG) at the Payne Institute, Colorado School of Mines, using data from the VIIRS instrument aboard Suomi NPP and JPSS-1 — and the World Bank's annual flaring estimates from the **Global Flaring and Methane Reduction Partnership (GFMR**, formerly the Global Gas Flaring Reduction Partnership / GGFR**)**. The science is solid. What has been missing is an open Python interface to make the data usable for African researchers, journalists, regulators, and engineers without paywalls or proprietary GIS software.
+
+> **Important — pyflare does not bundle, redistribute, or rehost VIIRS Nightfire data.** The library is a thin client; each user must obtain their own VNF Academic Data Use License directly from EOG (`eog@mines.edu`) and supply their own credentials. See [`LICENSING_NOTES.md`](LICENSING_NOTES.md).
 
 `pyflare` is that interface.
 
@@ -23,7 +25,7 @@ Satellite-based monitoring of flares has existed for over a decade, principally 
 
 ## What it does
 
-- **Fetches** VIIRS Nightfire daily detections and GGFR annual flared volumes.
+- **Fetches** VIIRS Nightfire daily detections (using user-supplied EOG credentials — pyflare does not redistribute VNF) and GFMR annual flared volumes.
 - **Filters** to the African continent or any of 17 African oil/gas-producing countries.
 - **Classifies** detections as flares vs. wildfires using temperature signatures from Elvidge et al. (2013).
 - **Clusters** recurring detections into persistent flare sites.
@@ -92,7 +94,7 @@ m.save("niger-delta.html")
 
 ```
 pyflare/
-├── data.py        # Fetchers (GGFR, VNF) + spatial filters
+├── data.py        # Fetchers (GFMR, VNF) + spatial filters
 ├── analysis.py    # Classification, clustering, volume + methane estimates
 └── viz.py         # Folium maps and matplotlib plots
 ```
@@ -117,7 +119,7 @@ via GeoPandas.
 
 ## Roadmap
 
-- [x] **v0.1** — GGFR + VNF transport, bbox filtering, classification, site clustering, Folium maps
+- [x] **v0.1** — GFMR + VNF transport, bbox filtering, classification, site clustering, Folium maps
 - [ ] **v0.2** — Polygon-precise country filtering via Natural Earth + GeoPandas
 - [ ] **v0.3** — Streamlit dashboard scaffolding (`pyflare.dashboard`) for `flarewatch.africa`
 - [ ] **v0.4** — Zenodo deposit of the AFLARED harmonized dataset (with DOI)
@@ -129,7 +131,7 @@ via GeoPandas.
 ## Citing
 
 If you use `pyflare` in research, please cite both the underlying VNF /
-GGFR methodologies and the toolkit:
+GFMR methodologies and the toolkit:
 
 ```bibtex
 @software{pyflare,
@@ -161,8 +163,11 @@ Covenant 2.1).
 
 > This product was made utilizing VIIRS Nightfire (VNF) nightly data produced by the Earth Observation Group, Payne Institute for Public Policy, Colorado School of Mines.
 
+VIIRS Nightfire is produced by **EOG at the Colorado School of Mines** — not by NOAA. The VIIRS instrument aboard the Suomi NPP and JPSS-1 satellites supplies the underlying observations; the Nightfire algorithm and product are EOG's.
+
 Annual flaring volumes are published by the World Bank's
-[Global Gas Flaring Reduction Partnership](https://www.worldbank.org/en/programs/gasflaringreduction).
+[Global Flaring and Methane Reduction Partnership (GFMR)](https://www.worldbank.org/en/programs/gasflaringreduction)
+(formerly the Global Gas Flaring Reduction Partnership, GGFR).
 
 This project would not exist without the methodology developed and freely
 documented by Christopher Elvidge and colleagues.

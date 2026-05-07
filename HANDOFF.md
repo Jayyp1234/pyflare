@@ -21,7 +21,7 @@ context that can be dropped into a Claude Code session to continue work.
 | `CONTRIBUTING.md` | Contributor guide + Adopt-a-Country programme | ✅ |
 | `.gitignore` | Python + pyflare-specific ignores | ✅ |
 | `src/pyflare/__init__.py` | Public API surface | ✅ |
-| `src/pyflare/data.py` | GGFR + VNF fetchers, spatial filters, schema normalization | ✅ |
+| `src/pyflare/data.py` | GFMR + VNF fetchers, spatial filters, schema normalization | ✅ |
 | `src/pyflare/analysis.py` | Flare classification, persistence, site clustering, volume + methane proxy | ✅ |
 | `src/pyflare/viz.py` | Folium maps, matplotlib charts, project palette | ✅ |
 | `tests/test_data.py` | 17 tests | ✅ |
@@ -104,7 +104,7 @@ Use Claude Code with the prompt template at the bottom of this document.
 
 ### Day 5: Cold emails
 
-10. Email Christopher Elvidge (NOAA EOG) — ask for a quoted endorsement.
+10. Email Christopher Elvidge (EOG, Colorado School of Mines) — ask for a quoted endorsement.
 11. Email Stakeholder Democracy Network (Niger Delta NGO).
 12. Confirm Dr. Adeyanju (UNILAG HOD) institutional support.
 
@@ -168,7 +168,7 @@ without good reason:
   boxes are honest about overlap (Saudi Arabia falls inside the African
   bbox at 40°E). Polygons require GeoPandas which is heavy.
 - **Sync HTTP for v0.1, async for v0.2.** Simpler dependencies, easier
-  to test, no real performance need at GGFR-annual scale.
+  to test, no real performance need at GFMR-annual scale.
 - **Lazy imports for viz dependencies.** Keeps the core package lean for
   data-only users.
 - **Greedy single-link clustering for `aggregate_to_sites`.** O(n²) but
@@ -177,7 +177,7 @@ without good reason:
 - **Methane proxy as a function with configurable slip fraction**, not
   a hardcoded constant. Slip fraction is contested in the literature
   (IPCC 2%, recent satellite work 5%+); we expose the choice.
-- **Schema normalization in `data.py` is column-name-tolerant.** GGFR's
+- **Schema normalization in `data.py` is column-name-tolerant.** GFMR's
   upstream column names have changed several times; pyflare's mapping
   function survives that.
 

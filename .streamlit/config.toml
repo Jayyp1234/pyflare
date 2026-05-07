@@ -1,0 +1,13 @@
+# Streamlit theme — matches the iconic Africa-glowing palette in
+# assets/africa_overview_600dpi.png so the dashboard reads as one unit.
+
+[theme]
+base = "dark"
+primaryColor = "#d44500"
+backgroundColor = "#0a0a0a"
+secondaryBackgroundColor = "#1c1c1c"
+textColor = "#f0e8d8"
+font = "sans serif"
+
+[browser]
+gatherUsageStats = false

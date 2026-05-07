@@ -1,6 +1,6 @@
 # Quickstart
 
-A 5-minute end-to-end walkthrough using the public GGFR dataset, plus a synthetic VNF stand-in for the per-flare detection pipeline (real VNF requires an EOG academic license — see {doc}`licensing`).
+A 5-minute end-to-end walkthrough using the public GFMR dataset, plus a synthetic VNF stand-in for the per-flare detection pipeline (real VNF requires an EOG academic license — see {doc}`licensing`).
 
 ## Install
 
@@ -18,13 +18,13 @@ pip install 'pyflare-africa[dev]'           # for contributors
 ```python
 import pyflare as pf
 
-annual = pf.fetch_ggfr_annual()
+annual = pf.fetch_gfmr_annual()
 nigeria = annual[annual["country"] == "Nigeria"].sort_values("year")
 print(nigeria.tail(5))
 ```
 
 ```{tip}
-The first call downloads the World Bank GGFR XLSX (~70 KB) and caches it
+The first call downloads the World Bank GFMR XLSX (~70 KB) and caches it
 in `~/.cache/pyflare/`. Subsequent calls read from cache.
 ```
 

@@ -220,7 +220,7 @@ def render() -> Path:
     )
     fig.text(
         0.5, 0.91,
-        "Synthetic preview · pyflare v0.1 · GGFR 2024 · "
+        "Synthetic preview · pyflare v0.1 · GFMR 2024 · "
         f"{len(PRODUCER_COUNTRIES_NE)} producing nations",
         ha="center", va="center",
         color=COLOR_SUBTITLE, fontsize=10,

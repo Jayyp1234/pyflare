@@ -16,7 +16,7 @@
 
 > Hello SDN team,
 >
-> SDN's work on oil-sector accountability in the Niger Delta is part of why I started **pyflare** (https://github.com/Jayyp1234/pyflare), an open Python toolkit that turns NOAA's VIIRS Nightfire detections into accessible flaring estimates for African producing nations. First cut for Nigeria 2024: **22–31 MtCO2e/year** depending on methane slip assumption — a number I want communities and journalists to be able to reproduce themselves, not just have to take from a thinktank.
+> SDN's work on oil-sector accountability in the Niger Delta is part of why I started **pyflare** (https://github.com/Jayyp1234/pyflare), an open Python toolkit that turns VIIRS Nightfire (VNF) detections — produced by EOG at the Colorado School of Mines — into accessible flaring estimates for African producing nations. First cut for Nigeria 2024: **22–31 MtCO2e/year** depending on methane slip assumption — a number I want communities and journalists to be able to reproduce themselves, not just have to take from a thinktank.
 >
 > Two things I'd value from SDN:
 >

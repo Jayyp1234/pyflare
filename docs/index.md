@@ -2,7 +2,9 @@
 
 > Open Python toolkit for satellite-based gas flaring analytics across African oil-producing nations.
 
-`pyflare` turns NOAA's VIIRS Nightfire (VNF) detections and the World Bank's Global Gas Flaring Reduction (GGFR) annual estimates into a small, well-tested Python interface designed for African researchers, journalists, regulators, and engineers.
+`pyflare` turns VIIRS Nightfire (VNF) detections — produced by EOG at the Colorado School of Mines, using observations from the VIIRS instrument aboard Suomi NPP and JPSS-1 — and the World Bank's Global Flaring and Methane Reduction Partnership (GFMR; formerly Global Gas Flaring Reduction / GGFR) annual estimates into a small, well-tested Python interface designed for African researchers, journalists, regulators, and engineers.
+
+Pyflare is a thin client. It does **not** bundle, redistribute, or rehost VNF data; each user must hold their own VNF Academic Data Use License from EOG and supply their own credentials. See {doc}`licensing`.
 
 It is the technical centerpiece of a longer-term initiative aimed at:
 
@@ -13,7 +15,7 @@ It is the technical centerpiece of a longer-term initiative aimed at:
 
 ## Headline numbers
 
-For Nigeria's 2024 gas flaring (GGFR-published 6.48 bcm), `pyflare` produces:
+For Nigeria's 2024 gas flaring (GFMR-published 6.48 bcm), `pyflare` produces:
 
 | Climate frame | 19–28 MtCO₂e per year |
 | --- | --- |

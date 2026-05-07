@@ -129,7 +129,7 @@ A living doc updated after each phase. Read it for 30 seconds at end of day; you
 
 Beyond pass / fail, on these days we ask:
 
-- Is the headline number defensible if a NOAA scientist reviews it? Re-run with alternate slip fractions to bound the answer.
+- Is the headline number defensible if an EOG / Colorado School of Mines scientist reviews it? Re-run with alternate slip fractions to bound the answer.
 - Does the iconic map photograph well at A1 print size? Render a 50% crop, check pixel density.
 - Does the abstract open with the **NUMBER**, not the project name? Reviewers skim — numbers stick.
 - Are there LLM tells in the README origin paragraph? Grep for "delve", "tapestry", em-dash overuse, "furthermore", "moreover".

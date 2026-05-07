@@ -1,6 +1,6 @@
 """Generate per-country pyflare quickstart notebooks.
 
-Each notebook follows the same structure (GGFR trend → African context →
+Each notebook follows the same structure (GFMR trend → African context →
 synthetic VNF pipeline → CO₂-equivalent headline) and is parameterised by
 country: a configured set of approximate facility coordinates plus a
 narrative hook. Run from the repo root::
@@ -213,7 +213,7 @@ def make_cells(slug: str, cfg: dict) -> list[dict]:
         md(f"""
             # {region} — pyflare quickstart
 
-            > A 5-minute walkthrough: from the World Bank's annual GGFR
+            > A 5-minute walkthrough: from the World Bank's annual GFMR
             > estimates to a peer-reviewable CO₂-equivalent headline number
             > for {country}'s gas flaring. Runs without EOG credentials by
             > using a synthetic VNF detection set for the region — replace
@@ -222,7 +222,7 @@ def make_cells(slug: str, cfg: dict) -> list[dict]:
 
             **Why this country:** {hook}
 
-            **Status:** validated against pyflare v0.1.0 + 2025 GGFR release
+            **Status:** validated against pyflare v0.1.0 + 2025 GFMR release
             (data through 2024).
         """),
         md("""
@@ -274,19 +274,19 @@ def make_cells(slug: str, cfg: dict) -> list[dict]:
         md(f"""
             ## 1. Annual flaring trend, {country} 2012–2024
 
-            `fetch_ggfr_annual()` pulls the live World Bank GGFR workbook,
+            `fetch_gfmr_annual()` pulls the live World Bank GFMR workbook,
             melts it to long format, and normalises country names. No
             authentication required.
         """),
         code(f"""
-            annual = pf.fetch_ggfr_annual()
+            annual = pf.fetch_gfmr_annual()
             country_df = annual[annual["country"] == "{country}"].sort_values("year")
             country_df.tail(8).reset_index(drop=True)
         """),
         code(f"""
             fig, ax = plt.subplots(figsize=(8, 4))
             ax.plot(country_df["year"], country_df["bcm_flared"], marker="o", color="#d44500", linewidth=2)
-            ax.set_title("{country} — annual gas flaring volume (GGFR)", loc="left", fontsize=12, fontweight="bold")
+            ax.set_title("{country} — annual gas flaring volume (GFMR)", loc="left", fontsize=12, fontweight="bold")
             ax.set_xlabel("Year")
             ax.set_ylabel("Flared volume (bcm)")
             ax.grid(True, alpha=0.3)
@@ -360,13 +360,13 @@ def make_cells(slug: str, cfg: dict) -> list[dict]:
             volumes = estimate_flared_volume(sites, observation_days=14)
             site_total_bcm = volumes["estimated_volume_bcm"].sum()
             print(f"Sum of synthetic-site flared volume estimates: {site_total_bcm:.4f} bcm")
-            print("(Synthetic, not comparable to GGFR country-wide total — illustrative only.)")
+            print("(Synthetic, not comparable to GFMR country-wide total — illustrative only.)")
             volumes[["site_id", "longitude", "latitude", "n_detections", "estimated_volume_bcm"]]
         """),
         md(f"""
             ## 4. Headline number — {country} CO₂-equivalent, 2024
 
-            Using `volume_to_co2eq()` against the **GGFR-reported** {country}
+            Using `volume_to_co2eq()` against the **GFMR-reported** {country}
             2024 flared volume (not the synthetic per-site sum), under three
             published methane-slip assumptions.
         """),
@@ -385,7 +385,7 @@ def make_cells(slug: str, cfg: dict) -> list[dict]:
                 rows.append({{"slip": slip, "source": label, "MtCO2e": round(mt, 2)}})
 
             headline = pd.DataFrame(rows)
-            print(f"{country} flared volume (GGFR 2024): {{country_2024_bcm:.2f}} bcm")
+            print(f"{country} flared volume (GFMR 2024): {{country_2024_bcm:.2f}} bcm")
             print()
             headline
         """),

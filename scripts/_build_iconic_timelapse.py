@@ -2,8 +2,8 @@
 
 Five keyframes — 2012, 2015, 2018, 2021, 2024 — show how flaring volumes
 in the four priority African producers (Nigeria, Angola, Algeria, Libya)
-changed over the GGFR record. Each facility's glow brightness scales
-with its country's GGFR-reported volume in that year, normalised against
+changed over the GFMR record. Each facility's glow brightness scales
+with its country's GFMR-reported volume in that year, normalised against
 the highest annual volume seen by any African producer in the dataset.
 
 Run from the repo root::
@@ -284,7 +284,7 @@ def main() -> None:
     geojson = _load_world_geojson()
     african_features = [f for f in geojson["features"] if _is_african(f)]
 
-    df = pf.fetch_ggfr_annual()
+    df = pf.fetch_gfmr_annual()
     df_african = df[df["country"].isin(PYFLARE_PRODUCERS)]
     annual = {
         (row["country"], int(row["year"])): float(row["bcm_flared"])

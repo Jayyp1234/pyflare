@@ -34,9 +34,9 @@
 - [x] **`notebooks` extras** added to `pyproject.toml` (`jupyter`, `nbconvert`, `ipykernel`, `matplotlib`)
 - [x] Local venv set up (`.venv`, Python 3.12); full suite **41 passed, 1 skipped** (viz skipped — folium not installed)
 
-### Headline number — CORRECTED against live GGFR 2025 release
+### Headline number — CORRECTED against live GFMR 2025 release
 
-The original PLAN.md figure (7.4 bcm) turned out to be stale. The 2025 GGFR release reports **Nigeria 2024 = 6.48 bcm**. Recomputed:
+The original PLAN.md figure (7.4 bcm) turned out to be stale. The 2025 GFMR release reports **Nigeria 2024 = 6.48 bcm**. Recomputed:
 
 | Methane slip | Source | MtCO2e / year |
 |---|---|---|
@@ -88,12 +88,12 @@ After push, watch Actions tab — first CI run on 3.10/3.11/3.12 should go green
 - [x] **G4 GREEN** — country-parameterised notebook builder produces 4 working notebooks (Niger Delta, Angola, Algeria, Libya); all execute cleanly via `jupyter nbconvert --execute`.
 - [x] **G5 GREEN** — iconic Africa map at 3600×4200 px / 600 dpi; layered-alpha flare glow on four priority countries' synthetic facility coords; §2.a footer attribution baked in.
 - [x] **G6 GREEN** — `analysis.communities_near_sites()` shipped with curated `KNOWN_AFRICAN_SETTLEMENTS` reference + 7 unit tests. Niger Delta synthetic exposure: **322,000 people within 10 km, 2.2 M within 25 km** of the 6 priority facilities.
-- [x] **G7 GREEN** — `assets/africa_timelapse.gif` rendered: 5 keyframes (2012/2015/2018/2021/2024), per-country GGFR volumes drive dot intensity, Libya's 2015 civil-war dip reads cleanly mid-loop.
-- [x] **G8 GREEN** — `src/pyflare/dashboard.py` Streamlit MVP shipped (local-only per VNF §1.f.iii). Country selector, slip slider, GGFR trend, top-5 comparison, communities-near table.
+- [x] **G7 GREEN** — `assets/africa_timelapse.gif` rendered: 5 keyframes (2012/2015/2018/2021/2024), per-country GFMR volumes drive dot intensity, Libya's 2015 civil-war dip reads cleanly mid-loop.
+- [x] **G8 GREEN** — `src/pyflare/dashboard.py` Streamlit MVP shipped (local-only per VNF §1.f.iii). Country selector, slip slider, GFMR trend, top-5 comparison, communities-near table.
 - [x] **G9 GREEN** — Sphinx + Furo docs scaffold (`docs/conf.py`, `index.md`, `quickstart.md`, `api.rst`, `licensing.md`) builds clean locally. RTD config at repo root.
 - [x] **G10 prep done (gate awaits `git tag v0.1.0`)** — wheel + sdist built (`dist/pyflare_africa-0.1.0-{whl,tar.gz}`), smoke-installed in a fresh venv, `volume_to_co2eq(6.48, 0.05) == 22.62 MtCO₂e` end-to-end. Release runbook at [`RELEASE.md`](RELEASE.md).
 - [x] **OAuth 2.0 refactor for `fetch_vnf_nightly()`** — Keycloak password grant, in-process token caching, 5 new mocked-HTTP tests.
-- [x] **GGFR data fix** — World Bank moved CSV → XLSX in 2025; URL repaired, schema normalised.
+- [x] **GFMR data fix** — World Bank moved CSV → XLSX in 2025; URL repaired, schema normalised.
 - [x] **Y3 done** — PyPI distribution name locked: **`pyflare-africa`** (import stays `pyflare`). pyproject.toml + README + badge + docs updated.
 - [x] **Y2 round 3 draft** — Client ID request email at [`drafts/y2_eog_client_id.md`](drafts/y2_eog_client_id.md). User to send.
 

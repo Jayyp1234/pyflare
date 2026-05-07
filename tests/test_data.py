@@ -1,6 +1,6 @@
 """Tests for pyflare.data.
 
-Network calls in transport functions (``fetch_ggfr_annual``,
+Network calls in transport functions (``fetch_gfmr_annual``,
 ``fetch_vnf_nightly``, ``_get_eog_access_token``) are mocked here; live
 integration tests live under ``tests/integration/`` and are gated on the
 EOG credential env vars.
@@ -21,8 +21,8 @@ from pyflare.data import (
     _coerce_date,
     _get_eog_access_token,
     _match_country,
-    _melt_ggfr_wide,
-    _standardize_ggfr_schema,
+    _melt_gfmr_wide,
+    _standardize_gfmr_schema,
     fetch_vnf_nightly,
     filter_africa,
     filter_bbox,
@@ -104,7 +104,7 @@ def test_filter_bbox_drops_missing_coordinates() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_standardize_ggfr_schema_handles_variant_columns() -> None:
+def test_standardize_gfmr_schema_handles_variant_columns() -> None:
     raw = pd.DataFrame(
         {
             "Country Name": ["Nigeria", "Angola"],
@@ -113,14 +113,14 @@ def test_standardize_ggfr_schema_handles_variant_columns() -> None:
             "Flaring (bcm)": ["7.4", "3.5"],
         }
     )
-    out = _standardize_ggfr_schema(raw)
+    out = _standardize_gfmr_schema(raw)
     assert list(out.columns) == ["country", "iso3", "year", "bcm_flared"]
     assert out["year"].dtype == "Int64"
     assert out["bcm_flared"].dtype == float
     assert out.loc[0, "bcm_flared"] == pytest.approx(7.4)
 
 
-def test_standardize_ggfr_schema_preserves_unknown_columns() -> None:
+def test_standardize_gfmr_schema_preserves_unknown_columns() -> None:
     raw = pd.DataFrame(
         {
             "country": ["Nigeria"],
@@ -129,7 +129,7 @@ def test_standardize_ggfr_schema_preserves_unknown_columns() -> None:
             "extra_meta": ["irrelevant"],
         }
     )
-    out = _standardize_ggfr_schema(raw)
+    out = _standardize_gfmr_schema(raw)
     assert "extra_meta" in out.columns
 
 
@@ -168,11 +168,11 @@ def test_africa_bbox_constants_are_consistent() -> None:
 
 
 # ---------------------------------------------------------------------------
-# GGFR XLSX → long melt
+# GFMR (formerly GGFR) XLSX → long melt
 # ---------------------------------------------------------------------------
 
 
-def test_melt_ggfr_wide_pivots_to_long_format() -> None:
+def test_melt_gfmr_wide_pivots_to_long_format() -> None:
     raw = pd.DataFrame(
         {
             "Country, bcm": ["Nigeria", "Angola", "Congo, Rep."],
@@ -180,7 +180,7 @@ def test_melt_ggfr_wide_pivots_to_long_format() -> None:
             2024: [6.480, 2.061, 1.936],
         }
     )
-    out = _melt_ggfr_wide(raw)
+    out = _melt_gfmr_wide(raw)
     assert set(out.columns) == {"country", "year", "bcm_flared"}
     assert len(out) == 6  # 3 countries × 2 years
     nigeria_2024 = out[(out["country"] == "Nigeria") & (out["year"] == 2024)]

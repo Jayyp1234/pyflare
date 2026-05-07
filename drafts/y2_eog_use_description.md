@@ -10,7 +10,7 @@
 
 > Pyflare is an open-source Python toolkit (MIT-licensed, https://github.com/Jayyp1234/pyflare) for satellite-based gas flaring analytics across African oil- and gas-producing nations. I'm developing it through the University of Lagos as the technical centerpiece of three intended academic outputs:
 >
-> 1. **PyCon Africa 2026 poster** (deadline 2026-05-20). A Niger Delta case study using nightly VNF detections to demonstrate flare/wildfire classification (Elvidge et al. 2013), persistence-based site clustering, and the radiant-heat → flared-volume regression (Elvidge et al. 2016) — combined with World Bank GGFR annual estimates to produce a CO₂-equivalent headline figure for Nigerian flaring in 2024.
+> 1. **PyCon Africa 2026 poster** (deadline 2026-05-20). A Niger Delta case study using nightly VNF detections to demonstrate flare/wildfire classification (Elvidge et al. 2013), persistence-based site clustering, and the radiant-heat → flared-volume regression (Elvidge et al. 2016) — combined with World Bank GFMR annual estimates to produce a CO₂-equivalent headline figure for Nigerian flaring in 2024.
 >
 > 2. **JOSS methods paper**, target submission July 2026. Documents the pyflare implementation, the unit-test suite (currently 41 tests, all passing), and the validation of the implementation against published reference values.
 >

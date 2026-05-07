@@ -22,9 +22,9 @@ Key obligations that affect pyflare users:
 
 The repository's [`LICENSING_NOTES.md`](https://github.com/Jayyp1234/pyflare/blob/main/LICENSING_NOTES.md) contains the developer-facing checklist mapped to specific code paths.
 
-## World Bank GGFR
+## World Bank GFMR (formerly GGFR)
 
-GGFR annual flared volumes are published openly via the World Bank under the Creative Commons Attribution 4.0 license. `pyflare.fetch_ggfr_annual()` downloads the workbook directly and caches it locally. Citation form on the World Bank's website.
+GFMR annual flared volumes are published openly via the World Bank under the Creative Commons Attribution 4.0 license. `pyflare.fetch_gfmr_annual()` downloads the workbook directly and caches it locally. The deprecated alias `pyflare.fetch_ggfr_annual()` still works for v0.1 / v0.2; it will be removed in v0.3.
 
 ## Pyflare itself
 

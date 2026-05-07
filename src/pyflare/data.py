@@ -1,22 +1,31 @@
-"""Data fetching and spatial filtering for NOAA VIIRS Nightfire and GGFR products.
+"""Data fetching and spatial filtering for VIIRS Nightfire and GFMR products.
 
 This module exposes a thin, well-typed Python interface to two complementary
 satellite-derived datasets used to monitor global gas flaring:
 
-1. **VIIRS Nightfire (VNF)** — nightly per-detection observations produced by
-   the Earth Observation Group at the Colorado School of Mines. Each row is
-   a single thermal anomaly with a measured radiant heat, blackbody
-   temperature, and emitting area. Distinguishing flares from wildfires
-   downstream of VNF requires temporal persistence and temperature filters
-   (handled in `pyflare.analysis`).
+1. **VIIRS Nightfire (VNF)** — nightly per-detection observations **produced
+   by the Earth Observation Group (EOG) at the Payne Institute for Public
+   Policy, Colorado School of Mines**, using data from the VIIRS instrument
+   aboard the Suomi NPP and JPSS-1 satellites. Each row is a single thermal
+   anomaly with a measured radiant heat, blackbody temperature, and emitting
+   area. Distinguishing flares from wildfires downstream of VNF requires
+   temporal persistence and temperature filters (handled in
+   `pyflare.analysis`).
 
-2. **Global Gas Flaring Reduction (GGFR) annual estimates** — country-level
-   annual flared volumes (in billion cubic metres) published by the World
-   Bank's GGFR Partnership using the VNF methodology. This is the headline
-   dataset for the AFLARED study and the easiest entry point for users who
-   are not yet ready to handle daily satellite observations.
+   Pyflare does **not** bundle, mirror, or otherwise redistribute VNF data —
+   `fetch_vnf_nightly()` is a thin client that uses caller-supplied
+   credentials. Each user must hold their own VNF Academic Data Use License
+   from EOG (`eog@mines.edu`).
 
-The pyflare project uses GGFR as the v0.1 default because (a) it requires no
+2. **Global Flaring and Methane Reduction Partnership (GFMR) annual
+   estimates** — country-level annual flared volumes (in billion cubic
+   metres) published by the World Bank's GFMR (formerly the Global Gas
+   Flaring Reduction Partnership / GGFR), derived using the VNF methodology.
+   This is the headline dataset for the AFLARED study and the easiest entry
+   point for users who are not yet ready to handle daily satellite
+   observations.
+
+The pyflare project uses GFMR as the v0.1 default because (a) it requires no
 authentication, (b) the schema is stable, and (c) the country-year resolution
 maps cleanly onto the policy and journalism use cases the project targets.
 
@@ -26,7 +35,7 @@ Elvidge, C. D., Zhizhin, M., Hsu, F.-C., & Baugh, K. E. (2013). VIIRS
 Nightfire: Satellite pyrometry at night. *Remote Sensing*, 5(9), 4423-4449.
 https://doi.org/10.3390/rs5094423
 
-World Bank Global Gas Flaring Reduction Partnership.
+World Bank Global Flaring and Methane Reduction Partnership.
 https://www.worldbank.org/en/programs/gasflaringreduction
 """
 
@@ -81,23 +90,31 @@ AFRICAN_PRODUCERS_BBOX: dict[str, tuple[float, float, float, float]] = {
 # Endpoints
 # ---------------------------------------------------------------------------
 
-GGFR_DATA_URL = (
+GFMR_DATA_URL = (
     "https://thedocs.worldbank.org/en/doc/"
     "bd2432bbb0e514986f382f61b14b2608-0400072025/related/"
     "Flare-volume-and-intensity-estimates-2012-2024.xlsx"
 )
-"""Public GGFR annual flared-volume table.
+"""Public Global Flaring and Methane Reduction Partnership (GFMR) annual
+flared-volume table.
 
 As of the 2025 release the World Bank publishes this dataset as an
 ``.xlsx`` workbook with three sheets — ``Flare volume``, ``Flaring
 intensity``, and ``Oil production`` — each in wide format (one row per
-country, year columns). :func:`fetch_ggfr_annual` reads ``Flare volume``
+country, year columns). :func:`fetch_gfmr_annual` reads ``Flare volume``
 and melts to a tidy long-format frame. The URL is rotated annually; pass
-the ``url`` keyword to :func:`fetch_ggfr_annual` to override.
+the ``url`` keyword to :func:`fetch_gfmr_annual` to override.
+
+GFMR was renamed from the Global Gas Flaring Reduction Partnership (GGFR)
+in 2025; the older name still appears in some external references.
 """
 
+# Back-compat alias — pyflare v0.1 was developed under the old GGFR name.
+GGFR_DATA_URL = GFMR_DATA_URL
+
 VNF_BASE_URL = "https://eogdata.mines.edu/wwwdata/viirs_products/vnf/v30/csv"
-"""Base URL for VIIRS Nightfire v3.0 CSV archive at NOAA EOG.
+"""Base URL for the VIIRS Nightfire v3.0 CSV archive at the Earth
+Observation Group (EOG), Colorado School of Mines.
 
 Daily files follow the pattern::
 
@@ -152,16 +169,16 @@ class FetchResult:
     rows: int
 
 
-def fetch_ggfr_annual(
+def fetch_gfmr_annual(
     *,
-    url: str = GGFR_DATA_URL,
+    url: str = GFMR_DATA_URL,
     cache_dir: Path | str | None = None,
     refresh: bool = False,
     return_metadata: bool = False,
     timeout: int = 60,
     sheet_name: str = "Flare volume",
 ) -> pd.DataFrame | FetchResult:
-    """Fetch World Bank GGFR annual flared-volume table.
+    """Fetch the World Bank GFMR (formerly GGFR) annual flared-volume table.
 
     Returns a tidy DataFrame with one row per country-year and the columns
     ``country``, ``year``, ``bcm_flared`` (billion cubic metres). Country
@@ -188,7 +205,7 @@ def fetch_ggfr_annual(
         HTTP timeout in seconds.
     sheet_name
         Workbook sheet to read. Defaults to ``"Flare volume"``; other
-        sheets in the GGFR workbook are ``"Flaring intensity"`` and
+        sheets in the workbook are ``"Flaring intensity"`` and
         ``"Oil production"``.
 
     Returns
@@ -199,7 +216,7 @@ def fetch_ggfr_annual(
     Examples
     --------
     >>> import pyflare as pf
-    >>> df = pf.fetch_ggfr_annual()                       # doctest: +SKIP
+    >>> df = pf.fetch_gfmr_annual()                       # doctest: +SKIP
     >>> df[df["country"] == "Nigeria"].tail()             # doctest: +SKIP
     """
     cache_root = Path(cache_dir) if cache_dir else DEFAULT_CACHE
@@ -215,7 +232,7 @@ def fetch_ggfr_annual(
         logger.debug("Reading GGFR annual data from cache: %s", cache_file)
 
     raw = pd.read_excel(cache_file, sheet_name=sheet_name)
-    df = _melt_ggfr_wide(raw)
+    df = _melt_gfmr_wide(raw)
 
     if return_metadata:
         return FetchResult(
@@ -240,12 +257,14 @@ def fetch_vnf_nightly(
     refresh: bool = False,
     timeout: int = 120,
 ) -> pd.DataFrame:
-    """Fetch one nightly VIIRS Nightfire CSV from NOAA EOG.
+    """Fetch one nightly VIIRS Nightfire CSV from EOG (Colorado School of Mines).
 
     Each detection in the returned frame is a thermal anomaly — *not* a
     confirmed flare. Wildfire / flare classification is the caller's
     responsibility (see :mod:`pyflare.analysis`). This function only
-    handles transport, decompression, and schema parsing.
+    handles transport, decompression, and schema parsing — pyflare does
+    **not** redistribute VNF data; each user must hold their own VNF
+    Academic Data Use License from EOG and supply their own credentials.
 
     Authentication uses the OAuth 2.0 password-grant flow: pyflare
     exchanges your credentials for a short-lived JWT access token
@@ -532,8 +551,8 @@ def _canonicalise_wb_country(name: object) -> object:
     return _WB_TO_PYFLARE_COUNTRY.get(name, name)
 
 
-def _melt_ggfr_wide(raw: pd.DataFrame) -> pd.DataFrame:
-    """Convert the World Bank GGFR wide-format sheet to tidy long format.
+def _melt_gfmr_wide(raw: pd.DataFrame) -> pd.DataFrame:
+    """Convert the World Bank GFMR wide-format sheet to tidy long format.
 
     Source layout: one row per country with year columns (``2012`` through
     the latest year covered). Output columns: ``country``, ``year``,
@@ -554,13 +573,17 @@ def _melt_ggfr_wide(raw: pd.DataFrame) -> pd.DataFrame:
     return long.dropna(subset=["country", "year"]).reset_index(drop=True)
 
 
-def _standardize_ggfr_schema(df: pd.DataFrame) -> pd.DataFrame:
-    """Normalise GGFR column names across World Bank annual releases.
+def _standardize_gfmr_schema(df: pd.DataFrame) -> pd.DataFrame:
+    """Normalise GFMR (formerly GGFR) column names across World Bank annual releases.
 
     The upstream CSV has changed column casing and naming several times
     since 2017. This function maps any of the known variants to the
     canonical pyflare schema: ``country``, ``iso3``, ``year``, ``bcm_flared``.
     Unknown extra columns are preserved.
+
+    Pyflare's :func:`fetch_gfmr_annual` no longer calls this directly (the
+    2025 release is XLSX-only and is handled by :func:`_melt_gfmr_wide`),
+    but it is retained for users with cached CSV files from older releases.
     """
     rename_map: dict[str, str] = {}
     for col in df.columns:
@@ -616,3 +639,19 @@ def list_supported_countries() -> list[str]:
     """Return the sorted list of African producer countries supported by
     :func:`filter_country`."""
     return sorted(AFRICAN_PRODUCERS_BBOX)
+
+
+# ---------------------------------------------------------------------------
+# Back-compat aliases — World Bank renamed GGFR → GFMR in 2025.
+# Pyflare v0.1 was developed under the older name; the aliases below let
+# downstream code keep working while the canonical names move to GFMR.
+# ---------------------------------------------------------------------------
+
+#: Deprecated alias for :func:`fetch_gfmr_annual`. Will be removed in v0.3.
+fetch_ggfr_annual = fetch_gfmr_annual
+
+#: Deprecated alias for :func:`_melt_gfmr_wide`. Private helper.
+_melt_ggfr_wide = _melt_gfmr_wide
+
+#: Deprecated alias for :func:`_standardize_gfmr_schema`. Private helper.
+_standardize_ggfr_schema = _standardize_gfmr_schema
